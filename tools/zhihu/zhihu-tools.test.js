@@ -37,7 +37,7 @@ test('prepareZhihuArticlePackage can adapt a platform-neutral content package in
 
   const result = prepareZhihuArticlePackage({ content_package_dir: contentPackage.package_dir });
 
-  assert.match(result.package_dir, /channels\/zhihu$/);
+  assert.equal(result.package_dir, path.join(contentPackage.package_dir, 'channels', 'zhihu'));
   assert.ok(fs.existsSync(result.article_path));
   assert.equal(result.metadata.channel, 'zhihu');
   assert.equal(result.metadata.source_content_package, contentPackage.package_dir);
@@ -105,6 +105,26 @@ test('getZhihuBrowserAutomationGuide returns actionable MCP setup guidance', () 
   assert.match(guide, /@playwright\/mcp/);
   assert.match(guide, /重启 OpenCode/);
   assert.match(guide, /手动登录知乎/);
+});
+
+test('zhihu_prepare_article tool keeps channel output inside content package when content_package_dir is provided', async () => {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zhihu-tool-test-'));
+  const contentPackage = prepareContentPackage({
+    topic: '工具执行路径闭环',
+    title: '工具执行路径闭环',
+    markdown: '# 开头\n\n渠道适配应输出到内容包内。',
+    output_dir: outputDir,
+  });
+  const tools = createZhihuTools(tool);
+
+  const result = await tools.zhihu_prepare_article.execute(
+    { content_package_dir: contentPackage.package_dir },
+    { directory: path.join(outputDir, 'workspace') },
+  );
+
+  const expectedChannelDir = path.join(contentPackage.package_dir, 'channels', 'zhihu');
+  assert.match(result, new RegExp(expectedChannelDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.ok(fs.existsSync(expectedChannelDir));
 });
 
 test('createZhihuTools exposes zhihu channel tool definitions', () => {

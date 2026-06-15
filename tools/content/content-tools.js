@@ -9,6 +9,11 @@ const FORBIDDEN_PATTERNS = [
   { code: 'token', pattern: /token\s*[:=]/i },
   { code: 'secret', pattern: /secret\s*[:=]/i },
   { code: 'password', pattern: /password\s*[:=]/i },
+  { code: 'jwt', pattern: /eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/ },
+  { code: 'access-key-id', pattern: /(?:AKIA|ASIA)[0-9A-Z]{16}/ },
+  { code: 'secret-access-key', pattern: /(?:secret_access_key|accessKeySecret|access_key_secret|secretKey|secret_key)\s*[:=]/i },
+  { code: 'access-key-id-field', pattern: /(?:access_key_id|accessKeyId|ak)\s*[:=]/i },
+  { code: 'secret-key-field', pattern: /(?:^|[\s{,;"'`])sk\s*[:=]\s*["']?[A-Za-z0-9/+_.=-]{6,}/i },
   { code: 'private-key', pattern: /-----BEGIN [A-Z ]*PRIVATE KEY-----/ },
   { code: 'ip-address', pattern: /(?:\d{1,3}\.){3}\d{1,3}/ },
 ];

@@ -42,6 +42,28 @@ test('prepareContentPackage rejects sensitive content before writing package', (
   assert.equal(fs.readdirSync(outputDir).length, 0);
 });
 
+test('prepareContentPackage rejects JWT and access key style secrets without echoing values', () => {
+  const jwt = ['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiIxMjM0NTY3ODkwIn0', 'signaturepart'].join('.');
+  const accessKey = ['AK', 'IA1234567890ABCDEF'].join('');
+  const secretAccessKey = ['secret', '_access_key=abc123'].join('');
+  const shortSk = ['s', 'k=abc123456'].join('');
+  const upperShortSk = ['S', 'K: abc123456'].join('');
+
+  for (const sensitive of [jwt, accessKey, secretAccessKey, 'accessKeySecret=abc123', shortSk, upperShortSk, 'ak=public\nsk=private123']) {
+    assert.throws(
+      () => prepareContentPackage({
+        title: '敏感信息扩展扫描',
+        markdown: `正文\n${sensitive}`,
+      }),
+      (error) => {
+        assert.match(error.message, /may contain sensitive information/);
+        assert.doesNotMatch(error.message, /abc123|abc123456|private123|signaturepart|1234567890ABCDEF/);
+        return true;
+      },
+    );
+  }
+});
+
 test('content_prepare_package tool is exposed by content tools and plugin', async () => {
   const contentTools = createContentTools(tool);
   assert.ok(contentTools.content_prepare_package);

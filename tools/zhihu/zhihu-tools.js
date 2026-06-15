@@ -261,7 +261,7 @@ export function createZhihuTools(tool) {
         try {
           const result = prepareZhihuArticlePackage({
             ...args,
-            output_dir: args.output_dir || path.join(context?.directory || process.cwd(), '.tmp', 'zhihu-article-packages'),
+            output_dir: args.output_dir || (args.content_package_dir ? undefined : path.join(context?.directory || process.cwd(), '.tmp', 'zhihu-article-packages')),
           });
           return [
             '知乎文章内容包已生成。',

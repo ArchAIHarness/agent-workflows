@@ -1,6 +1,6 @@
 ---
 name: zhihu-article-manager
-version: 1.1.0
+version: 1.2.0
 description: Use when managing Zhihu articles, 知乎文章, 知乎专栏, 知乎草稿, publishing workflows, content topic/generation/review, markdown-to-Zhihu channel adaptation, browser automation setup guidance, draft saving, or AI-assisted Zhihu content operations in OpenCode.
 ---
 
@@ -51,6 +51,24 @@ zhihu_browser_setup_guide
 
 浏览器自动化只操作页面，不读取 Cookie、Token、账号密码、浏览器 profile 文件或 `.env`。
 
+## 用户入口
+
+用户可能只会说一句人话，不会说“内容包”“渠道适配”“MCP”。遇到以下表达，直接进入全流程编排，不要先解释架构：
+
+| 用户说法 | 默认意图 |
+|---|---|
+| `把这个文章发布知乎` | 使用当前对话文章或当前文件，准备知乎发布，发布前停住 |
+| `把 article.md 发知乎` | 读取文件，生成内容包和知乎适配包，打开知乎草稿流程 |
+| `发到知乎` | 如果上下文已有文章则继续；没有文章才问“要发布哪篇文章？” |
+| `打开知乎创作页` | 只打开知乎创作页并识别登录状态，不发布 |
+
+默认交互原则：
+
+1. 少问。能从当前消息、当前文件名、当前目录候选推断的，不让用户解释流程。
+2. 先做可逆动作。内容包、渠道包、打开页面、保存草稿是可逆动作；发布上线必须确认。
+3. 不把技术依赖甩给用户。浏览器能力缺失时，先调用 `zhihu_browser_setup_guide`，告诉用户“我已经准备好配置/需要重启”，而不是让用户研究 MCP。
+4. 只在缺少文章内容、存在多个候选文件、或即将发布上线时提问。
+
 ## 推荐流程
 
 ### 1. 内容选题
@@ -63,6 +81,13 @@ zhihu_browser_setup_guide
 - 目标渠道是否只有知乎，还是还要小红书/公众号等？
 
 信息足够时，直接进入内容包生成；信息不足时，只问影响成稿的关键问题。
+
+当用户说“这个文章”但未粘贴正文时，按顺序找来源：
+
+1. 当前对话最近一篇完整文章。
+2. 用户明确提到的文件名。
+3. 当前目录下明显的 Markdown 候选文件。
+4. 如果仍不确定，只问一句：`要发布哪篇文章？可以给我文件名或直接粘贴正文。`
 
 ### 2. 内容生成
 
