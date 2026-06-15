@@ -115,6 +115,7 @@ opencode-plugin.js
 
 1. 将 `skills/` 加入 `config.skills.paths`。
 2. 读取 `agents/*.md` 并注入 `config.agent`。
+3. 在缺少 `mcp.playwright` 时自动注册 Playwright MCP，支撑浏览器自动化；不得覆盖用户已有 `mcp.playwright`。
 
 要求：
 

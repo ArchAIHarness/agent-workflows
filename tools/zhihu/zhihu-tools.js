@@ -216,7 +216,7 @@ export function getZhihuBrowserAutomationGuide() {
   return [
     '知乎渠道发布需要浏览器自动化能力。当前工具不会读取账号、密码、Cookie 或浏览器 Profile。',
     '',
-    '推荐配置 Playwright MCP 到 opencode.json：',
+    '插件会自动注册 Playwright MCP。若当前会话仍没有浏览器工具，通常只需要重启 OpenCode。需要手动核对时，可确认 opencode.json 中存在以下配置：',
     '```json',
     '{',
     '  "$schema": "https://opencode.ai/config.json",',

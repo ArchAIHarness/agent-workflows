@@ -37,6 +37,15 @@ function registerSkills(config) {
   }
 }
 
+function registerBrowserMcp(config) {
+  config.mcp = config.mcp || {};
+  config.mcp.playwright = config.mcp.playwright || {
+    type: 'local',
+    command: ['npx', '-y', '@playwright/mcp'],
+    enabled: true,
+  };
+}
+
 function registerAgents(config) {
   if (!fs.existsSync(agentsDir)) return;
   config.agent = config.agent || {};
@@ -64,6 +73,7 @@ export const ArchAIAgentWorkflowsPlugin = async () => {
     config: async (config) => {
       registerSkills(config);
       registerAgents(config);
+      registerBrowserMcp(config);
     },
     tool: {
       ...createContentTools(tool),

@@ -44,7 +44,8 @@
 - `agents/*.md` 为 OpenCode agents。
 - `skills/**/SKILL.md` 为 OpenCode skills。
 - `tools/content` 中的 `content_prepare_package` 为 OpenCode custom tool，用于生成平台无关内容管理包。
-- `tools/zhihu` 中的 `zhihu_prepare_article` / `zhihu_browser_setup_guide` 为 OpenCode custom tools，用于知乎渠道适配、浏览器自动化配置引导和发布前检查。
+- 自动注册 `playwright` MCP，用于浏览器自动化；如用户已有自定义 `mcp.playwright`，插件不会覆盖。
+- `tools/zhihu` 中的 `zhihu_prepare_article` / `zhihu_browser_setup_guide` 为 OpenCode custom tools，用于知乎渠道适配、浏览器自动化引导和发布前检查。
 
 安装说明见 [.opencode/INSTALL.md](./.opencode/INSTALL.md)。
 
