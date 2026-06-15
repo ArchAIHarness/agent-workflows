@@ -6,7 +6,24 @@ import path from 'node:path';
 import { tool } from '@opencode-ai/plugin';
 import { ArchAIAgentWorkflowsPlugin } from '../../opencode-plugin.js';
 import { prepareContentPackage } from '../content/content-tools.js';
-import { createZhihuTools, getZhihuBrowserAutomationGuide, prepareZhihuArticlePackage } from './zhihu-tools.js';
+import { createZhihuTools, getZhihuBrowserAutomationGuide, prepareZhihuArticlePackage, prepareZhihuPublishWorkflow } from './zhihu-tools.js';
+
+test('prepareZhihuPublishWorkflow creates content package and zhihu channel package in one call', () => {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zhihu-tool-test-'));
+  const result = prepareZhihuPublishWorkflow({
+    title: '一句话发布知乎闭环',
+    topic: '一句话发布知乎',
+    markdown: '# 开头\n\n用户只说发布知乎时，也应生成内容包和渠道包。',
+    tags: 'AI Agent,知乎',
+    output_dir: outputDir,
+  });
+
+  const expectedZhihuDir = path.join(result.content_package.package_dir, 'channels', 'zhihu');
+  assert.equal(result.zhihu_package.package_dir, expectedZhihuDir);
+  assert.ok(fs.existsSync(result.content_package.content_path));
+  assert.ok(fs.existsSync(result.zhihu_package.article_path));
+  assert.equal(result.publish_gate, 'manual-confirmation-required');
+});
 
 test('prepareZhihuArticlePackage creates article package files', () => {
   const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zhihu-tool-test-'));
@@ -129,6 +146,7 @@ test('zhihu_prepare_article tool keeps channel output inside content package whe
 
 test('createZhihuTools exposes zhihu channel tool definitions', () => {
   const tools = createZhihuTools(tool);
+  assert.ok(tools.zhihu_prepare_publish);
   assert.ok(tools.zhihu_prepare_article);
   assert.ok(tools.zhihu_browser_setup_guide);
   assert.equal(typeof tools.zhihu_prepare_article.execute, 'function');

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { normalizeList, scanSensitiveContent } from '../content/content-tools.js';
+import { normalizeList, prepareContentPackage, scanSensitiveContent } from '../content/content-tools.js';
 
 const MAX_SOURCE_FILE_BYTES = 2 * 1024 * 1024;
 const DEFAULT_FORBIDDEN_PATTERNS = [
@@ -212,6 +212,30 @@ export function prepareZhihuArticlePackage(input = {}) {
   };
 }
 
+export function prepareZhihuPublishWorkflow(input = {}) {
+  const contentPackage = prepareContentPackage({
+    topic: input.topic,
+    title: input.title,
+    markdown: input.markdown,
+    tags: input.tags,
+    summary: input.summary,
+    target_channels: 'zhihu',
+    output_dir: input.output_dir,
+  });
+  const zhihuPackage = prepareZhihuArticlePackage({
+    content_package_dir: contentPackage.package_dir,
+    title: input.title,
+    tags: input.tags,
+    summary: input.summary,
+    canonical_url: input.canonical_url,
+  });
+  return {
+    content_package: contentPackage,
+    zhihu_package: zhihuPackage,
+    publish_gate: zhihuPackage.metadata.publish_gate,
+  };
+}
+
 export function getZhihuBrowserAutomationGuide() {
   return [
     '知乎渠道发布需要浏览器自动化能力。当前工具不会读取账号、密码、Cookie 或浏览器 Profile。',
@@ -237,6 +261,38 @@ export function getZhihuBrowserAutomationGuide() {
 
 export function createZhihuTools(tool) {
   return {
+    zhihu_prepare_publish: tool({
+      description: '一键准备知乎发布流程：从用户文章生成平台无关内容包和 channels/zhihu 渠道包，保留发布确认门禁，不点击发布。适合“把这个文章发布知乎”这类一句话意图。',
+      args: {
+        title: tool.schema.string({ description: '文章标题' }),
+        markdown: tool.schema.string({ description: '文章正文 Markdown' }),
+        topic: tool.schema.string({ description: '内容选题或核心问题' }).optional(),
+        tags: tool.schema.string({ description: '标签，逗号分隔' }).optional(),
+        summary: tool.schema.string({ description: '摘要，可留空自动提取' }).optional(),
+        canonical_url: tool.schema.string({ description: '原文或规范链接，可留空' }).optional(),
+        output_dir: tool.schema.string({ description: '内容包输出目录；默认当前项目 .tmp/content-packages' }).optional(),
+      },
+      async execute(args, context) {
+        try {
+          const result = prepareZhihuPublishWorkflow({
+            ...args,
+            output_dir: args.output_dir || path.join(context?.directory || process.cwd(), '.tmp', 'content-packages'),
+          });
+          return [
+            '知乎发布准备已完成。',
+            `- 内容包：${result.content_package.package_dir}`,
+            `- 内容预审：${result.content_package.review_checklist_path}`,
+            `- 知乎适配包：${result.zhihu_package.package_dir}`,
+            `- 知乎正文：${result.zhihu_package.article_path}`,
+            `- 发布门禁：${result.publish_gate}`,
+            '- 下一步：打开知乎创作页，登录后保存草稿；发布前必须明确确认。',
+          ].join('\n');
+        } catch (error) {
+          return `知乎发布准备失败：${error.message}`;
+        }
+      },
+    }),
+
     zhihu_browser_setup_guide: tool({
       description: '返回知乎渠道发布所需的浏览器自动化配置引导，包括 Playwright MCP 示例、重启提醒、手动登录和发布门禁。不会读取 Cookie/Token。',
       args: {},

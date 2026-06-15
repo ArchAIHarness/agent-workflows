@@ -34,10 +34,21 @@ content_prepare_package
 2. **保存草稿**：依赖浏览器自动化打开知乎创作页，用户登录后由 AI 辅助填写并保存草稿。
 3. **发布上线**：必须用户明确确认后才能点击发布或更新。
 
-优先调用：
+一句话发布意图优先调用：
+
+```text
+zhihu_prepare_publish
+```
+
+已有通用内容包时再调用：
 
 ```text
 zhihu_prepare_article
+```
+
+浏览器能力缺失时调用：
+
+```text
 zhihu_browser_setup_guide
 ```
 
@@ -91,7 +102,9 @@ zhihu_browser_setup_guide
 
 ### 2. 内容生成
 
-调用 `content_prepare_package`，生成平台无关内容包：
+如果用户是一句话发布到知乎，例如 `把这个文章发布知乎`，优先调用 `zhihu_prepare_publish` 一次性完成内容包和知乎渠道包，避免让模型手动拼接多个工具。
+
+如果用户只要求内容管理或多渠道准备，再调用 `content_prepare_package`，生成平台无关内容包：
 
 - `content.md`
 - `metadata.json`
