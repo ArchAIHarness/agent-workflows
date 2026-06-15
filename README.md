@@ -7,7 +7,7 @@
 [![OpenCode](https://img.shields.io/badge/OpenCode-Plugin%20%7C%20Agents%20%7C%20Skills-6E40C9?logo=opensourceinitiative&logoColor=white)](https://opencode.ai)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Agents](https://img.shields.io/badge/agents-3-success.svg)](#agents)
-[![Skills](https://img.shields.io/badge/skills-3-blue.svg)](#skills)
+[![Skills](https://img.shields.io/badge/skills-4-blue.svg)](#skills)
 
 </div>
 
@@ -21,6 +21,7 @@
 
 - 日常办公：办公材料整理、正式简历制作。
 - 编码开发：DDD Java / Spring Boot 多模块开发。
+- 内容运营：内容选题、内容生成、内容预审，与知乎等发布渠道适配分离。
 - 质量评估：基于项目自身设计文档的代码质量评估。
 
 ---
@@ -42,6 +43,8 @@
 
 - `agents/*.md` 为 OpenCode agents。
 - `skills/**/SKILL.md` 为 OpenCode skills。
+- `tools/content` 中的 `content_prepare_package` 为 OpenCode custom tool，用于生成平台无关内容管理包。
+- `tools/zhihu` 中的 `zhihu_prepare_article` / `zhihu_browser_setup_guide` 为 OpenCode custom tools，用于知乎渠道适配、浏览器自动化配置引导和发布前检查。
 
 安装说明见 [.opencode/INSTALL.md](./.opencode/INSTALL.md)。
 
@@ -67,6 +70,7 @@
 |---|---|---|---|
 | [`formal-resume-builder`](./skills/office/formal-resume-builder/) | office | 正式简历制作、排版、HTML/PDF 输出和质量校验 | 1.0.0 |
 | [`ddd-java-developer`](./skills/engineering/ddd-java-developer/) | engineering | DDD Java / Spring Boot 多模块开发约束流程 | 1.0.0 |
+| [`zhihu-article-manager`](./skills/content/zhihu-article-manager/) | content | 内容管理与知乎渠道发布适配、浏览器自动化配置引导和发布门禁 | 1.1.0 |
 | [`code-quality`](./skills/quality/code-quality/) | quality | 基于项目自身设计文档的 AI 代码质量评估 | 9.0 |
 
 ---
@@ -78,6 +82,8 @@
 | [`tools/office`](./tools/office/) | 办公文档处理、格式转换、摘要生成辅助工具 |
 | [`tools/java`](./tools/java/) | Java / DDD 工程检查和模板辅助工具 |
 | [`tools/quality`](./tools/quality/) | 质量评估辅助工具 |
+| [`tools/content`](./tools/content/) | 平台无关内容选题、生成、预审和内容包工具 |
+| [`tools/zhihu`](./tools/zhihu/) | 知乎渠道适配、浏览器自动化引导和发布前检查工具 |
 
 ---
 
@@ -96,11 +102,14 @@ agent-workflows/
 ├── skills/
 │   ├── office/
 │   ├── engineering/
+│   ├── content/
 │   └── quality/
 └── tools/
     ├── office/
     ├── java/
-    └── quality/
+    ├── quality/
+    ├── content/
+    └── zhihu/
 ```
 
 ---

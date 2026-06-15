@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { tool } from '@opencode-ai/plugin';
+import { createContentTools } from './tools/content/content-tools.js';
+import { createZhihuTools } from './tools/zhihu/zhihu-tools.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = __dirname;
@@ -61,6 +64,10 @@ export const ArchAIAgentWorkflowsPlugin = async () => {
     config: async (config) => {
       registerSkills(config);
       registerAgents(config);
+    },
+    tool: {
+      ...createContentTools(tool),
+      ...createZhihuTools(tool),
     },
   };
 };
