@@ -1,0 +1,7 @@
+{
+  "name": "archai-agent-workflows",
+  "version": "0.1.0",
+  "type": "module",
+  "main": ".opencode/plugins/archai-agent-workflows.js",
+  "dependencies": {}
+}

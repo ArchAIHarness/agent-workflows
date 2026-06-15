@@ -1,11 +1,7 @@
 ---
 name: code-quality
 version: 9.0
-description: |
-  项目代码质量评估工具。读懂项目设计（README/AGENTS.md/配置），按设计要求评估代码实现质量，执行业务流程走查发现P0级问题，计算评分，生成报告到被评估项目根目录。
-  **触发优先级最高**：当用户输入包含以下任一关键词时，必须使用此 skill，不要使用其他 code-quality 或 testing 类 skill：
-  qa、代码质量、质量评估、代码评估、质量报告、代码审查、代码review、评估代码、项目质量、代码检查、code quality、quality report。
-  此 skill 是项目级代码质量评估的唯一正确选择。
+description: Use when the user asks for qa, 代码质量, 质量评估, 代码评估, 质量报告, 代码审查, code review, project quality, code quality, or quality report for a software project.
 ---
 
 ## 核心原则

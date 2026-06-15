@@ -1,13 +1,13 @@
 <div align="center">
 
-# ArchAIHarness Skills
+# ArchAIHarness Agent Workflows
 
-**OpenCode / Claude Code Skill 集合 · 把架构哲学装进 AI 工作流**
+**OpenCode 插件 / Agent / Skill / Tool 集合**
 
-[![OpenCode](https://img.shields.io/badge/OpenCode-Skills-6E40C9?logo=opensourceinitiative&logoColor=white)](https://opencode.ai)
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-Compatible-D97757?logo=anthropic&logoColor=white)](https://www.anthropic.com/claude-code)
+[![OpenCode](https://img.shields.io/badge/OpenCode-Plugin%20%7C%20Agents%20%7C%20Skills-6E40C9?logo=opensourceinitiative&logoColor=white)](https://opencode.ai)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Skills](https://img.shields.io/badge/skills-1-blue.svg)](#skills-index)
+[![Agents](https://img.shields.io/badge/agents-3-success.svg)](#agents)
+[![Skills](https://img.shields.io/badge/skills-3-blue.svg)](#skills)
 
 </div>
 
@@ -15,98 +15,102 @@
 
 ## 这是什么
 
-`ArchAIHarness/skills` 是 **ArchAIHarness** 体系下的 AI 代理技能(skill)集合。
-每个 skill 都是一份**可被 OpenCode / Claude Code 直接加载执行**的工程化模板:把架构师的方法论沉淀成 AI 能调用的具体工序,让 AI 真正承接「按规范执行」的活。
+`ArchAIHarness/agent-workflows` 是公开的 OpenCode 能力集合，提供可直接加载的插件、Agents、Skills 和 Tools。
 
-> 与 [docs](https://github.com/ArchAIHarness/docs) 的关系:`docs` 写"为什么 + 怎么做",`skills` 提供"AI 直接代你做"的工具。
+当前能力覆盖：
+
+- 日常办公：办公材料整理、正式简历制作。
+- 编码开发：DDD Java / Spring Boot 多模块开发。
+- 质量评估：基于项目自身设计文档的代码质量评估。
 
 ---
 
-## Skills 索引
+## OpenCode 安装
 
-<a name="skills-index"></a>
+在 `opencode.json` 中添加：
 
-| Skill | 一句话定位 | 版本 | 状态 |
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["archai-agent-workflows@git+https://github.com/ArchAIHarness/agent-workflows.git"]
+}
+```
+
+重启 OpenCode。
+
+插件会注册：
+
+- `agents/*.md` 为 OpenCode agents。
+- `skills/**/SKILL.md` 为 OpenCode skills。
+
+安装说明见 [.opencode/INSTALL.md](./.opencode/INSTALL.md)。
+
+---
+
+## Agents
+
+<a name="agents"></a>
+
+| Agent | 定位 |
+|---|---|
+| [`office`](./agents/office.md) | 日常办公材料整理、会议纪要、日报周报、文档总结 |
+| [`resume`](./agents/resume.md) | 正式简历制作、排版、HTML/PDF 导出编排 |
+| [`ddd-java-developer`](./agents/ddd-java-developer.md) | DDD Java / Spring Boot 多模块工程开发 |
+
+---
+
+## Skills
+
+<a name="skills"></a>
+
+| Skill | 分组 | 定位 | 版本 |
 |---|---|---|---|
-| [`code-quality`](./code-quality/) | 基于项目自身设计文档的 AI 代码质量评估 | 9.0 | ✅ 稳定 |
-
-> 更多 skill 正在路上。
+| [`formal-resume-builder`](./skills/office/formal-resume-builder/) | office | 正式简历制作、排版、HTML/PDF 输出和质量校验 | 1.0.0 |
+| [`ddd-java-developer`](./skills/engineering/ddd-java-developer/) | engineering | DDD Java / Spring Boot 多模块开发约束流程 | 1.0.0 |
+| [`code-quality`](./skills/quality/code-quality/) | quality | 基于项目自身设计文档的 AI 代码质量评估 | 9.0 |
 
 ---
 
-## 设计哲学
+## Tools
 
-| 原则 | 含义 |
+| 目录 | 定位 |
 |---|---|
-| **可执行优于可阅读** | 每个 skill 都能被 AI 直接拉起跑完,而不是「读完受启发」 |
-| **设计文档驱动** | 评估、生成、改造的标准来自被作用项目自己的设计文档,不强加通用规范 |
-| **证据强制** | 任何判定必须给文件/行号/链接,严禁 AI 信口开河 |
-| **零配置启动** | 装上即用,定制是选项不是前提 |
-| **可组合** | 一个 skill 解决一件事,跨 skill 的协作由 AI agent 编排 |
+| [`tools/office`](./tools/office/) | 办公文档处理、格式转换、摘要生成辅助工具 |
+| [`tools/java`](./tools/java/) | Java / DDD 工程检查和模板辅助工具 |
+| [`tools/quality`](./tools/quality/) | 质量评估辅助工具 |
 
 ---
 
-## 安装单个 skill
+## 仓库结构
 
-### OpenCode 项目内
-
-```bash
-cd your-project
-mkdir -p .opencode/skills
-git clone --depth=1 https://github.com/ArchAIHarness/skills.git /tmp/archai-skills
-cp -R /tmp/archai-skills/<skill-name> .opencode/skills/
-rm -rf /tmp/archai-skills
+```text
+agent-workflows/
+├── package.json
+├── README.md
+├── AGENTS.md
+├── LICENSE
+├── .opencode/
+│   ├── INSTALL.md
+│   └── plugins/
+│       └── archai-agent-workflows.js
+├── agents/
+├── skills/
+│   ├── office/
+│   ├── engineering/
+│   └── quality/
+└── tools/
+    ├── office/
+    ├── java/
+    └── quality/
 ```
-
-### Claude Code 用户级
-
-```bash
-mkdir -p ~/.claude/skills
-git clone --depth=1 https://github.com/ArchAIHarness/skills.git /tmp/archai-skills
-cp -R /tmp/archai-skills/<skill-name> ~/.claude/skills/
-rm -rf /tmp/archai-skills
-```
-
-替换 `<skill-name>` 为目标 skill 的目录名(见上方索引)。
-
-### 全套安装
-
-```bash
-mkdir -p .opencode/skills
-git clone --depth=1 https://github.com/ArchAIHarness/skills.git /tmp/archai-skills
-cp -R /tmp/archai-skills/*/ .opencode/skills/
-rm -rf /tmp/archai-skills
-```
-
----
-
-## 贡献新 skill
-
-希望贡献一个新的 skill?看 [AGENTS.md](./AGENTS.md) 的贡献规范。
-核心要求:
-
-- 单一职责,一个 skill 解决一类问题
-- 完整的 `SKILL.md` + `README.md` + 至少一个真实使用样例
-- 通过 [code-quality](./code-quality/) 自评,P0 问题清零
-
----
-
-## 兼容性
-
-| 平台 | 支持情况 |
-|---|---|
-| [OpenCode](https://opencode.ai) | ✅ 一等公民,首选适配目标 |
-| [Claude Code](https://www.anthropic.com/claude-code) | ✅ skill 协议相近,直接可用 |
-| 其他 AI Agent 平台 | 🟡 skill 结构通用(YAML frontmatter + Markdown),理论可适配,未做官方验证 |
 
 ---
 
 ## 相关仓库
 
-- 📚 [docs](https://github.com/ArchAIHarness/docs) — 哲学、方法论、实践模式
-- 🏗 [framework](https://github.com/ArchAIHarness/framework) — DDD 多租户企业脚手架
-- 🚪 [gateway](https://github.com/ArchAIHarness/gateway) — 反应式 API 网关
-- 🧠 **skills**(本仓库)— AI 代理技能集
+- [docs](https://github.com/ArchAIHarness/docs)
+- [framework](https://github.com/ArchAIHarness/framework)
+- [gateway](https://github.com/ArchAIHarness/gateway)
 
 ---
 
