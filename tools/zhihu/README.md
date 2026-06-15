@@ -6,7 +6,7 @@
 
 - `zhihu_prepare_publish`：一句话知乎发布准备工具。适合用户说“把这个文章发布知乎”，会生成平台无关内容包，并将知乎渠道包输出到 `<content-package>/channels/zhihu/`；只准备草稿/发布材料，不执行发布。
 - `zhihu_prepare_article`：将通用内容管理包或 Markdown 适配为知乎渠道包。
-- `zhihu_browser_setup_guide`：在缺少浏览器自动化能力时，返回可复制的 OpenCode / Playwright MCP 配置引导、重启提醒、手动登录步骤和发布门禁说明。
+- `zhihu_browser_setup_guide`：在缺少浏览器自动化能力时，返回可复制的 OpenCode / Playwright MCP / Chrome DevTools MCP 配置引导、重启提醒、手动登录步骤和发布门禁说明。
 
 ## 渠道管理边界
 

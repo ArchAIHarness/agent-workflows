@@ -9,6 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = __dirname;
 const agentsDir = path.join(repoRoot, 'agents');
 const skillsDir = path.join(repoRoot, 'skills');
+const superpowersSkillsDir = path.join(repoRoot, 'node_modules', 'superpowers', 'skills');
 
 function parseFrontmatter(markdown) {
   const match = markdown.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -28,13 +29,18 @@ function parseFrontmatter(markdown) {
   return { frontmatter, body: match[2].trimStart() };
 }
 
-function registerSkills(config) {
-  if (!fs.existsSync(skillsDir)) return;
+function addSkillPath(config, skillPath) {
+  if (!fs.existsSync(skillPath)) return;
   config.skills = config.skills || {};
   config.skills.paths = config.skills.paths || [];
-  if (!config.skills.paths.includes(skillsDir)) {
-    config.skills.paths.push(skillsDir);
+  if (!config.skills.paths.includes(skillPath)) {
+    config.skills.paths.push(skillPath);
   }
+}
+
+function registerSkills(config) {
+  addSkillPath(config, skillsDir);
+  addSkillPath(config, superpowersSkillsDir);
 }
 
 function registerBrowserMcp(config) {
@@ -42,6 +48,11 @@ function registerBrowserMcp(config) {
   config.mcp.playwright = config.mcp.playwright || {
     type: 'local',
     command: ['npx', '-y', '@playwright/mcp'],
+    enabled: true,
+  };
+  config.mcp['chrome-devtools'] = config.mcp['chrome-devtools'] || {
+    type: 'local',
+    command: ['npx', '-y', 'chrome-devtools-mcp'],
     enabled: true,
   };
 }

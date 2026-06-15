@@ -120,6 +120,7 @@ test('getZhihuBrowserAutomationGuide returns actionable MCP setup guidance', () 
   const guide = getZhihuBrowserAutomationGuide();
   assert.match(guide, /opencode\.json/);
   assert.match(guide, /@playwright\/mcp/);
+  assert.match(guide, /chrome-devtools-mcp/);
   assert.match(guide, /重启 OpenCode/);
   assert.match(guide, /手动登录知乎/);
 });
