@@ -34,5 +34,5 @@ After restart:
 ## Troubleshooting
 
 - If agents are missing, verify the plugin line in `opencode.json` and restart OpenCode.
-- If skills are missing, check that `.opencode/plugins/archai-agent-workflows.js` loads and that `skills/` exists in the installed package.
+- If skills are missing, check that `opencode-plugin.js` loads and that `skills/` exists in the installed package.
 - If OpenCode fails to start, remove the plugin line and validate `opencode.json` against `https://opencode.ai/config.json`.

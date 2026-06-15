@@ -90,9 +90,8 @@ agent-workflows/
 ├── AGENTS.md
 ├── LICENSE
 ├── .opencode/
-│   ├── INSTALL.md
-│   └── plugins/
-│       └── archai-agent-workflows.js
+│   └── INSTALL.md
+├── opencode-plugin.js
 ├── agents/
 ├── skills/
 │   ├── office/

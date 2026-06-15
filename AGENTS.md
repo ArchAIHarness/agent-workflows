@@ -8,7 +8,7 @@
 
 当前内容：
 
-- OpenCode 插件入口：`.opencode/plugins/archai-agent-workflows.js`
+- OpenCode 插件入口：`opencode-plugin.js`
 - OpenCode Agent 定义：`agents/*.md`
 - OpenCode Skill 定义：`skills/**/SKILL.md`
 - 工具脚本或资源：`tools/**`
@@ -20,7 +20,7 @@
 | `AGENTS.md` | 维护本仓库的规则 | 否 |
 | `README.md` | 仓库说明、安装、索引 | 否 |
 | `package.json` | git/npm 插件包入口 | 被 OpenCode 用于定位插件 main |
-| `.opencode/plugins/` | OpenCode 插件入口 | 是 |
+| `opencode-plugin.js` | OpenCode 插件入口 | 是 |
 | `agents/` | 可注入 OpenCode 的 Agent 定义 | 是 |
 | `skills/` | 可被 OpenCode skill tool 加载的 Skill 定义 | 是 |
 | `tools/` | 工具脚本或资源 | 视插件实现 |
@@ -103,8 +103,10 @@ tools/<domain>/
 插件入口：
 
 ```text
-.opencode/plugins/archai-agent-workflows.js
+opencode-plugin.js
 ```
+
+`.opencode/plugins/archai-agent-workflows.js` 仅作为本地源码形态下的兼容入口，转发到根插件入口。
 
 当前职责：
 
@@ -132,6 +134,7 @@ tools/<domain>/
 结构或插件变更后至少运行：
 
 ```bash
+node --check opencode-plugin.js
 node --check .opencode/plugins/archai-agent-workflows.js
 node -e "const fs=require('fs'); const p=require('./package.json'); if(!fs.existsSync(p.main)) process.exit(1); console.log(p.main)"
 ```
