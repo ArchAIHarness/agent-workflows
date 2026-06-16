@@ -97,8 +97,51 @@ function buildChecklist({ title, body, tags, summary, canonicalUrl }) {
   checklist.push(tags.length > 0 ? `标签已准备：${tags.join('、')}` : '标签缺失，建议补充 2-5 个知乎话题');
   checklist.push(body.includes('```') ? '包含代码块，发布后需人工检查格式' : '未检测到代码块');
   checklist.push(canonicalUrl ? '包含原文/规范链接，发布前确认外链策略' : '未设置原文链接');
+  checklist.push('草稿导入：导入前必须确认正文为空，导入后验证字数非 0、正文只出现 1 份');
+  checklist.push('插图处理：逐张定位、逐张上传、逐张插入、逐张验证，不批量连续插入');
   checklist.push('发布前人工确认：标题、首屏三段、标签、敏感信息、外链、版权');
   return checklist;
+}
+
+function buildBrowserPlaybook({ title }) {
+  return [
+    `# 知乎浏览器操作手册：${title}`,
+    '',
+    '## 原则',
+    '',
+    '- 不读取 Cookie、Token、密码、浏览器 profile 或 `.env`。',
+    '- 不点击发布/更新，除非用户明确回复“确认发布到知乎”或“确认更新知乎文章”。',
+    '- 不要直接填充正文作为最终方案；直接填充可能页面可见但知乎内部字数仍为 0。',
+    '- 正文优先用“导入 → 导入文档”导入无图 Markdown，让知乎内部字数、草稿状态和编辑器状态一致。',
+    '',
+    '## 草稿导入稳定流程',
+    '',
+    '1. 打开编辑页后先确认标题、封面和正文区域。',
+    '2. 如果正文不是空的，先让用户清空或用编辑器清空；导入前必须确认正文为空。',
+    '3. 验证清空状态：正文长度接近 0、正文图片数为 0、字数显示为 0。',
+    '4. 点击“导入 → 导入文档”，上传无图 Markdown。',
+    '5. 等待导入完成后验证：字数非 0、开头句只出现 1 次、第一节标题只出现 1 次、正文图片数为 0。',
+    '6. 如果发现正文重复或字数异常，立即停止，不要继续插图；先恢复到干净正文。',
+    '',
+    '## 正文插图稳定流程',
+    '',
+    '- 图 1 放第一节后、第二节前。',
+    '- 图 2 放第二节后、第三节前。',
+    '- 图 3 放第四节后、第五节前。',
+    '- 每张图都先把光标定位到目标小标题前，再点图片按钮上传并插入。',
+    '- 每插入一张图后立即验证：图片数递增 1、正文仍只出现 1 份、字数不变、图片前后段落符合预期。',
+    '- 不要连续上传多张后一次性插入；知乎弹窗和光标容易复用旧状态，导致图片堆在一起。',
+    '- 不要用含图 Markdown/DOCX 导入替代手动插图；知乎可能追加正文或丢图。',
+    '',
+    '## 推荐验证脚本思路',
+    '',
+    '- `imgCount`：正文编辑器中的图片数量。',
+    '- `startCount`：正文开头句出现次数，应为 1。',
+    '- `sectionOneCount`：第一节标题出现次数，应为 1。',
+    '- `wordCount`：页面字数，应非 0 且插图前后稳定。',
+    '- `imgs[].prev/next`：每张图的前后文本，用于确认图片位置。',
+    '',
+  ].join('\n');
 }
 
 function ensureOutputDir(outputDir) {
@@ -180,9 +223,11 @@ export function prepareZhihuArticlePackage(input = {}) {
   const articlePath = path.join(packageDir, 'article.zhihu.md');
   const metadataPath = path.join(packageDir, 'metadata.json');
   const checklistPath = path.join(packageDir, 'publish-checklist.md');
+  const browserPlaybookPath = path.join(packageDir, 'browser-playbook.md');
 
   fs.writeFileSync(articlePath, body.endsWith('\n') ? body : `${body}\n`, 'utf8');
   fs.writeFileSync(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(browserPlaybookPath, buildBrowserPlaybook({ title }), 'utf8');
   fs.writeFileSync(
     checklistPath,
     [
@@ -208,6 +253,7 @@ export function prepareZhihuArticlePackage(input = {}) {
     article_path: articlePath,
     metadata_path: metadataPath,
     checklist_path: checklistPath,
+    browser_playbook_path: browserPlaybookPath,
     metadata,
   };
 }
@@ -289,6 +335,7 @@ export function createZhihuTools(tool) {
             `- 内容预审：${result.content_package.review_checklist_path}`,
             `- 知乎适配包：${result.zhihu_package.package_dir}`,
             `- 知乎正文：${result.zhihu_package.article_path}`,
+            `- 浏览器操作手册：${result.zhihu_package.browser_playbook_path}`,
             `- 发布门禁：${result.publish_gate}`,
             '- 下一步：打开知乎创作页，登录后保存草稿；发布前必须明确确认。',
           ].join('\n');
@@ -330,6 +377,7 @@ export function createZhihuTools(tool) {
             `- 正文：${result.article_path}`,
             `- 元数据：${result.metadata_path}`,
             `- 检查清单：${result.checklist_path}`,
+            `- 浏览器操作手册：${result.browser_playbook_path}`,
             `- 发布门禁：${result.metadata.publish_gate}`,
             result.metadata.sensitive_findings.length
               ? `- 风险提示：${result.metadata.sensitive_findings.join('；')}`

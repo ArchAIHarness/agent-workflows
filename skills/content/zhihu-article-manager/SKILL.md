@@ -1,6 +1,6 @@
 ---
 name: zhihu-article-manager
-version: 1.2.0
+version: 1.3.0
 description: Use when managing Zhihu articles, 知乎文章, 知乎专栏, 知乎草稿, publishing workflows, content topic/generation/review, markdown-to-Zhihu channel adaptation, browser automation setup guidance, draft saving, or AI-assisted Zhihu content operations in OpenCode.
 ---
 
@@ -136,6 +136,7 @@ zhihu_browser_setup_guide
 - `article.zhihu.md`
 - `metadata.json`
 - `publish-checklist.md`
+- `browser-playbook.md`
 
 ### 5. 保存草稿
 
@@ -144,8 +145,22 @@ zhihu_browser_setup_guide
 1. 打开 `https://www.zhihu.com/creator` 或知乎写文章入口。
 2. 如未登录，提示用户在页面手动登录；不要索要 Cookie/Token。
 3. 进入文章编辑器。
-4. 填入标题、正文、标签/话题。
-5. 保存草稿或停在可保存状态，并汇报草稿状态。
+4. 标题可直接填；正文不要把“直接填充编辑器”作为最终方案，因为页面可见不代表知乎内部字数已更新。
+5. 正文优先走“导入 → 导入文档”上传无图 Markdown。
+6. 插图按下方“草稿导入与插图打通流程”逐张定位插入。
+7. 保存草稿或停在可保存状态，并汇报草稿状态。
+
+#### 草稿导入与插图打通流程
+
+1. **导入前清空**：导入前必须确认正文为空；若旧正文未清空，知乎导入会追加，造成正文重复和图片重复。
+2. **无图导入**：先导入无图 Markdown，只解决正文、格式和内部字数统计。不要依赖含图 Markdown/DOCX 导入正文图；知乎可能丢图或追加正文。
+3. **导入后验证**：检查字数非 `0`、正文开头只出现 `1` 次、第一节标题只出现 `1` 次、正文图片数为 `0`。
+4. **逐张定位插图**：每次把光标定位到目标小标题前，再打开图片弹窗上传并插入当前图片。
+5. **默认图位**：图 1 放第一节后/第二节前；图 2 放第二节后/第三节前；图 3 放第四节后/第五节前。不要让图 2 和图 3 连续堆在同一光标处。
+6. **逐张验证**：每插入一张图后立即验证图片数递增、正文仍只出现 `1` 份、字数稳定、图片前后段落符合目标位置。
+7. **异常即停**：发现字数为 `0`、正文重复、图片数量异常或图片堆叠时，立即停止并恢复干净正文，不继续叠加操作。
+
+若工具生成了 `browser-playbook.md`，浏览器操作时优先按该文件执行。
 
 若浏览器自动化不可用：
 

@@ -22,6 +22,7 @@ test('prepareZhihuPublishWorkflow creates content package and zhihu channel pack
   assert.equal(result.zhihu_package.package_dir, expectedZhihuDir);
   assert.ok(fs.existsSync(result.content_package.content_path));
   assert.ok(fs.existsSync(result.zhihu_package.article_path));
+  assert.ok(fs.existsSync(result.zhihu_package.browser_playbook_path));
   assert.equal(result.publish_gate, 'manual-confirmation-required');
 });
 
@@ -37,9 +38,15 @@ test('prepareZhihuArticlePackage creates article package files', () => {
   assert.ok(fs.existsSync(result.article_path));
   assert.ok(fs.existsSync(result.metadata_path));
   assert.ok(fs.existsSync(result.checklist_path));
+  assert.ok(fs.existsSync(result.browser_playbook_path));
   assert.equal(result.metadata.publish_gate, 'manual-confirmation-required');
   assert.deepEqual(result.metadata.tags, ['AI Agent', '工程化', 'OpenCode']);
   assert.match(fs.readFileSync(result.checklist_path, 'utf8'), /发布前人工确认/);
+  const playbook = fs.readFileSync(result.browser_playbook_path, 'utf8');
+  assert.match(playbook, /导入前必须确认正文为空/);
+  assert.match(playbook, /不要直接填充正文作为最终方案/);
+  assert.match(playbook, /图 2 放第二节后/);
+  assert.match(playbook, /每插入一张图后立即验证/);
 });
 
 test('prepareZhihuArticlePackage can adapt a platform-neutral content package into channels/zhihu', () => {
