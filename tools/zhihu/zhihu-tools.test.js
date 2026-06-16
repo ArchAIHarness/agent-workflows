@@ -45,7 +45,11 @@ test('prepareZhihuArticlePackage creates article package files', () => {
   const playbook = fs.readFileSync(result.browser_playbook_path, 'utf8');
   assert.match(playbook, /导入前必须确认正文为空/);
   assert.match(playbook, /不要直接填充正文作为最终方案/);
-  assert.match(playbook, /图 2 放第二节后/);
+  assert.match(playbook, /等待草稿保存状态稳定/);
+  assert.match(playbook, /刷新草稿编辑页/);
+  assert.match(playbook, /重新定位光标/);
+  assert.match(playbook, /已上传 1 张图片/);
+  assert.match(playbook, /点击“插入图片”/);
   assert.match(playbook, /每插入一张图后立即验证/);
   assert.match(playbook, /自动化只操作创作后台/);
   assert.match(playbook, /不要用自动化打开公开文章或专栏页/);

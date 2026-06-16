@@ -71,7 +71,7 @@
 |---|---|---|---|
 | [`formal-resume-builder`](./skills/office/formal-resume-builder/) | office | 正式简历制作、排版、HTML/PDF 输出和质量校验 | 1.0.0 |
 | [`ddd-java-developer`](./skills/engineering/ddd-java-developer/) | engineering | DDD Java / Spring Boot 多模块开发约束流程 | 1.0.0 |
-| [`zhihu-article-manager`](./skills/content/zhihu-article-manager/) | content | 一句话知乎发布编排、内容管理与渠道适配、草稿导入/插图打通、风控友好操作和发布门禁 | 1.4.0 |
+| [`zhihu-article-manager`](./skills/content/zhihu-article-manager/) | content | 一句话知乎发布编排、内容管理与渠道适配、草稿导入/刷新后插图打通、风控友好操作和发布门禁 | 1.5.0 |
 | [`code-quality`](./skills/quality/code-quality/) | quality | 基于项目自身设计文档的 AI 代码质量评估 | 9.0 |
 
 ---
