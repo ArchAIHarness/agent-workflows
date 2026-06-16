@@ -47,6 +47,10 @@ test('prepareZhihuArticlePackage creates article package files', () => {
   assert.match(playbook, /不要直接填充正文作为最终方案/);
   assert.match(playbook, /图 2 放第二节后/);
   assert.match(playbook, /每插入一张图后立即验证/);
+  assert.match(playbook, /自动化只操作创作后台/);
+  assert.match(playbook, /不要用自动化打开公开文章或专栏页/);
+  assert.match(playbook, /出现 40362|异常请求|验证码|安全验证时立即停止/);
+  assert.match(playbook, /公开页由用户手动验收/);
 });
 
 test('prepareZhihuArticlePackage can adapt a platform-neutral content package into channels/zhihu', () => {

@@ -1,6 +1,6 @@
 ---
 name: zhihu-article-manager
-version: 1.3.0
+version: 1.4.0
 description: Use when managing Zhihu articles, 知乎文章, 知乎专栏, 知乎草稿, publishing workflows, content topic/generation/review, markdown-to-Zhihu channel adaptation, browser automation setup guidance, draft saving, or AI-assisted Zhihu content operations in OpenCode.
 ---
 
@@ -61,6 +61,8 @@ zhihu_browser_setup_guide
 - 如果配置后仍不可用：降级为内容包 + 知乎适配包，不声称已保存草稿或发布。
 
 浏览器自动化只操作页面，不读取 Cookie、Token、账号密码、浏览器 profile 文件或 `.env`。
+
+为降低知乎风控概率，自动化默认只操作创作后台、内容管理、编辑器和草稿页；不要用自动化打开公开文章页或公开专栏页做验收。公开页由用户手动打开确认。
 
 ## 用户入口
 
@@ -149,6 +151,7 @@ zhihu_browser_setup_guide
 5. 正文优先走“导入 → 导入文档”上传无图 Markdown。
 6. 插图按下方“草稿导入与插图打通流程”逐张定位插入。
 7. 保存草稿或停在可保存状态，并汇报草稿状态。
+8. 验收仅使用创作后台状态；不要自动化访问公开文章/专栏页验证。
 
 #### 草稿导入与插图打通流程
 
@@ -203,7 +206,8 @@ zhihu_browser_setup_guide
 - 不把登录态、Cookie、知乎账号 ID、私有草稿原文写入公开仓库。
 - 不使用逆向接口绕过登录、验证码、审核或平台限制。
 - 不自动删除文章、撤回文章、修改账号设置、批量发布。
-- 浏览器页面出现安全、审核、违规、验证码、登录异常提示时，立即停止并汇报。
+- 不用自动化打开公开文章页或公开专栏页做验收；公开页链接交给用户手动确认。
+- 浏览器页面出现 `40362`、异常请求、安全、审核、违规、验证码、登录异常提示时，立即停止并汇报。
 
 ## 输出格式
 
