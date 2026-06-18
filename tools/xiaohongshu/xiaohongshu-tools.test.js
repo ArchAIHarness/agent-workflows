@@ -24,8 +24,15 @@ test('prepareXiaohongshuNotePackage creates note package files', () => {
   assert.equal(result.metadata.channel, 'xiaohongshu');
   assert.equal(result.metadata.draft_gate, 'browser-or-manual');
   assert.equal(result.metadata.publish_gate, 'manual-confirmation-required');
+  assert.deepEqual(result.metadata.publish_targets, ['xiaohongshu-note']);
+  assert.ok(Array.isArray(result.metadata.validation_points));
+  assert.ok(result.metadata.validation_points.includes('image-count-and-order'));
+  assert.ok(Array.isArray(result.metadata.manual_steps));
+  assert.ok(result.metadata.manual_steps.includes('stop-before-publish'));
+  assert.equal(result.metadata.image_requirements.aspect_ratio, '3:4 or 1:1');
   assert.ok(Array.isArray(result.metadata.cards));
   assert.ok(result.metadata.cards.length >= 2);
+  assert.equal(result.metadata.cards[0].role, 'cover');
 });
 
 test('prepareXiaohongshuNotePackage can adapt a content package into channels/xiaohongshu', () => {

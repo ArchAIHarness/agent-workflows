@@ -54,6 +54,10 @@ function ensureOutputDir(outputDir) {
   return target;
 }
 
+function countCodeFences(markdown) {
+  return (String(markdown || '').match(/```/g) || []).length;
+}
+
 function withJuejinFrontmatter(markdown, theme, highlight) {
   const body = stripFrontmatter(markdown);
   return [`---`, `theme: ${theme}`, `highlight: ${highlight}`, `---`, '', body, ''].join('\n');
@@ -119,11 +123,32 @@ export function prepareJuejinArticlePackage(input = {}) {
     throw new Error(`content may contain sensitive information: ${sensitiveFindings.join('；')}`);
   }
 
+  const fenceCount = countCodeFences(body);
+  const validationPoints = [
+    'markdown-preview',
+    'code-highlight-rendered',
+    'category-and-tags-selected',
+    'external-links-reviewed',
+    'manual-publish-confirmation',
+  ];
+  const manualSteps = [
+    'open-juejin-creator',
+    'manual-login-if-needed',
+    'select-markdown-editor',
+    'paste-article-markdown',
+    'fill-category-tags-summary',
+    'preview-article',
+    'save-draft',
+    'stop-before-publish',
+  ];
+  const previewRequirements = ['markdown-rendered', 'code-highlight-rendered', 'images-rendered', 'links-clickable'];
   const checklist = [
     title.length >= 8 ? '标题长度正常' : '标题偏短，建议补充具体技术对象或收益',
     body.includes('```') ? '包含代码块，发布后需检查高亮和缩进' : '未检测到代码块，如为技术文建议补充关键示例',
+    fenceCount % 2 === 0 ? '代码块围栏数量正常' : '代码块围栏数量为奇数，发布前必须修复 Markdown 代码块',
     tags.length > 0 ? `标签已准备：${tags.join('、')}` : '标签缺失，建议补充 2-4 个技术标签',
     category ? `分类已设置：${category}` : '分类缺失，建议选择技术分类',
+    /https?:\/\//.test(body) ? '包含外链，发布前检查链接可访问性与平台策略' : '未检测到外链',
     '发布前人工确认：标题、摘要、分类、标签、代码块、外链和敏感信息',
   ];
 
@@ -141,10 +166,14 @@ export function prepareJuejinArticlePackage(input = {}) {
     category,
     theme,
     highlight,
+    editor_type: 'markdown',
     source_content_package: sourceContentPackage || '',
     draft_gate: 'browser-or-manual',
     publish_gate: 'manual-confirmation-required',
     channel_actions: ['prepare-technical-markdown', 'save-draft-with-browser-automation', 'publish-after-human-confirmation'],
+    validation_points: validationPoints,
+    manual_steps: manualSteps,
+    preview_requirements: previewRequirements,
     assets: [],
     session: buildSession('juejin', title),
     generated_at: new Date().toISOString(),

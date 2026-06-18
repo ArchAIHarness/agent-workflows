@@ -60,12 +60,15 @@ function buildCards(title, markdown) {
     .map((line) => line.replace(/^#+\s*/, '').trim())
     .filter(Boolean)
     .slice(0, 6);
-  const bodyCards = lines.length ? lines : ['提炼核心问题', '拆解关键方法', '给出行动建议'];
+  const fallbackCards = ['提炼核心问题', '拆解关键方法', '展示关键细节', '给出行动建议'];
+  const bodyCards = lines.length ? lines : fallbackCards;
+  const roles = ['problem', 'method', 'detail', 'summary', 'extension', 'call-to-action', 'reference'];
   return [
-    { index: 1, type: 'cover', title, text: '一句话讲清核心问题', image_role: 'cover' },
+    { index: 1, type: 'cover', role: 'cover', title, text: '一句话讲清核心问题', image_role: 'cover' },
     ...bodyCards.slice(0, 7).map((text, index) => ({
       index: index + 2,
       type: 'content',
+      role: roles[index] || 'content',
       title: text.slice(0, 24),
       text: text.slice(0, 80),
       image_role: 'card',
@@ -131,12 +134,34 @@ export function prepareXiaohongshuNotePackage(input = {}) {
   }
 
   const cards = buildCards(title, body);
+  const validationPoints = [
+    'image-count-and-order',
+    'cover-readable',
+    'title-and-body-filled',
+    'hashtags-present',
+    'manual-publish-confirmation',
+  ];
+  const manualSteps = [
+    'open-xiaohongshu-creator',
+    'manual-login-if-needed',
+    'upload-cover-and-cards',
+    'fill-title-body-hashtags',
+    'verify-image-count-and-order',
+    'save-draft',
+    'stop-before-publish',
+  ];
+  const imageRequirements = {
+    aspect_ratio: '3:4 or 1:1',
+    order: 'cover-first-then-content-cards',
+    readability: 'large-text-low-density',
+  };
   const checklist = [
     title.length <= 20 ? '标题适合小红书首屏' : '标题偏长，建议压缩到 20 字以内',
     cards.length >= 2 ? `卡片规划已生成：${cards.length} 张` : '卡片规划不足，建议至少 1 封面 + 1 内容卡',
     tags.length > 0 ? `话题已准备：${tags.join('、')}` : '话题缺失，建议补充 3-5 个话题',
     '检查图片比例、图片顺序、封面可读性和文字密度',
-    '发布前人工确认：标题、正文、话题、图片版权、敏感信息',
+    '检查标题、正文、话题和图片版权',
+    '发布前人工确认：不自动点击发布',
   ];
 
   const outputDir = ensureOutputDir(input.output_dir || (sourceContentPackage ? path.join(sourceContentPackage, 'channels') : undefined));
@@ -153,7 +178,11 @@ export function prepareXiaohongshuNotePackage(input = {}) {
     source_content_package: sourceContentPackage || '',
     draft_gate: 'browser-or-manual',
     publish_gate: 'manual-confirmation-required',
+    publish_targets: ['xiaohongshu-note'],
     channel_actions: ['prepare-note', 'upload-images-with-browser-automation', 'publish-after-human-confirmation'],
+    validation_points: validationPoints,
+    manual_steps: manualSteps,
+    image_requirements: imageRequirements,
     cards,
     assets: [],
     session: buildSession('xiaohongshu', title),

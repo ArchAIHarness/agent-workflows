@@ -29,8 +29,9 @@ Adapt long-form Markdown or a content package into Xiaohongshu-ready note conten
 
 - Prefer 1 cover card plus 3-8 content cards.
 - Keep card text short and readable.
+- Check image count, image order, cover readability, title, body, hashtags, and copyright before draft filling.
 - Avoid exaggerated claims, fake results, sensitive work details, customer information, and internal metrics.
-- Check image ratio and image order before draft filling.
+- Stop before publish unless explicit human confirmation is present.
 
 ## Safety Rules
 

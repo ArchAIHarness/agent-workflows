@@ -7,7 +7,7 @@
 [![OpenCode](https://img.shields.io/badge/OpenCode-Plugin%20%7C%20Agents%20%7C%20Skills-6E40C9?logo=opensourceinitiative&logoColor=white)](https://opencode.ai)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Agents](https://img.shields.io/badge/agents-3-success.svg)](#agents)
-[![Skills](https://img.shields.io/badge/skills-8-blue.svg)](#skills)
+[![Skills](https://img.shields.io/badge/skills-9-blue.svg)](#skills)
 
 </div>
 
@@ -21,7 +21,7 @@
 
 - 日常办公：办公材料整理、正式简历制作。
 - 编码开发：DDD Java / Spring Boot 多模块开发。
-- 内容运营：内容选题、内容生成、内容预审，与知乎、小红书、掘金等发布渠道适配分离。
+- 内容运营：内容选题、内容生成、内容预审，与知乎、小红书、掘金、CSDN 等发布渠道适配分离。
 - 质量评估：基于项目自身设计文档的代码质量评估。
 
 ---
@@ -45,7 +45,7 @@
 - `skills/**/SKILL.md` 为 OpenCode skills。
 - 依赖内置的 `superpowers` skills 会从 `node_modules/superpowers/skills` 自动注册，用户无需单独安装。
 - 自动注册 `playwright` 与 `chrome-devtools` MCP，用于浏览器自动化；如用户已有自定义 `mcp.playwright` 或 `mcp.chrome-devtools`，插件不会覆盖。
-- `tools/zhihu`、`tools/xiaohongshu`、`tools/juejin` 中的渠道发布工具为 OpenCode custom tools，用于生成渠道包、浏览器操作手册、自动化引导和发布前检查；发布上线必须人工确认。
+- `tools/zhihu`、`tools/xiaohongshu`、`tools/juejin`、`tools/csdn` 中的渠道发布工具为 OpenCode custom tools，用于生成渠道包、浏览器操作手册、自动化引导和发布前检查；发布上线必须人工确认。
 
 安装说明见 [.opencode/INSTALL.md](./.opencode/INSTALL.md)。插件安装、缓存、更新和版本 pin 策略见 [OpenCode 插件安装与更新机制](./OpenCode插件安装与更新机制.md)。
 
@@ -76,6 +76,7 @@
 | [`zhihu-article-manager`](./skills/content/zhihu-article-manager/) | content | 知乎旧入口兼容 Skill；新工作优先使用 `zhihu-publisher` | 1.6.0 |
 | [`xiaohongshu-publisher`](./skills/content/xiaohongshu-publisher/) | content | 小红书图文笔记、卡片规划、话题适配和发布门禁 | 1.0.0 |
 | [`juejin-publisher`](./skills/content/juejin-publisher/) | content | 掘金技术 Markdown、front matter、分类标签和发布门禁 | 1.0.0 |
+| [`csdn-publisher`](./skills/content/csdn-publisher/) | content | CSDN 技术 Markdown、分类标签、原创声明、预览检查和发布门禁 | 1.0.0 |
 | [`code-quality`](./skills/quality/code-quality/) | quality | 基于项目自身设计文档的 AI 代码质量评估 | 9.0 |
 
 ---
@@ -91,6 +92,7 @@
 | [`tools/zhihu`](./tools/zhihu/) | 知乎渠道适配、浏览器自动化引导、草稿操作手册和发布前检查工具 |
 | [`tools/xiaohongshu`](./tools/xiaohongshu/) | 小红书图文笔记渠道包、卡片规划、浏览器操作手册和发布前检查工具 |
 | [`tools/juejin`](./tools/juejin/) | 掘金技术文章渠道包、front matter、浏览器操作手册和发布前检查工具 |
+| [`tools/csdn`](./tools/csdn/) | CSDN 技术文章渠道包、分类标签、原创声明、浏览器操作手册和发布前检查工具 |
 
 ---
 
@@ -120,7 +122,8 @@ agent-workflows/
     ├── content/
     ├── zhihu/
     ├── xiaohongshu/
-    └── juejin/
+    ├── juejin/
+    └── csdn/
 ```
 
 ---

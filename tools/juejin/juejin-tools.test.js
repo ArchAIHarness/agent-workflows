@@ -25,8 +25,29 @@ test('prepareJuejinArticlePackage creates article package files', () => {
   assert.match(article, /^---\ntheme: juejin\nhighlight: juejin\n---\n/);
   assert.equal(result.metadata.channel, 'juejin');
   assert.equal(result.metadata.category, 'AI');
+  assert.equal(result.metadata.editor_type, 'markdown');
   assert.equal(result.metadata.draft_gate, 'browser-or-manual');
   assert.equal(result.metadata.publish_gate, 'manual-confirmation-required');
+  assert.ok(Array.isArray(result.metadata.validation_points));
+  assert.ok(result.metadata.validation_points.includes('markdown-preview'));
+  assert.ok(Array.isArray(result.metadata.manual_steps));
+  assert.ok(result.metadata.manual_steps.includes('stop-before-publish'));
+  assert.ok(Array.isArray(result.metadata.preview_requirements));
+  assert.ok(result.metadata.preview_requirements.includes('code-highlight-rendered'));
+});
+
+test('prepareJuejinArticlePackage flags unclosed code fences in checklist', () => {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'juejin-tool-test-'));
+  const result = prepareJuejinArticlePackage({
+    title: 'AI Agent 工程化实践',
+    markdown: '# 开头\n\n```js\nconsole.log("agent")',
+    tags: 'AI,OpenCode',
+    category: 'AI',
+    output_dir: outputDir,
+  });
+
+  const checklist = fs.readFileSync(result.checklist_path, 'utf8');
+  assert.match(checklist, /代码块围栏数量为奇数/);
 });
 
 test('prepareJuejinArticlePackage can adapt a content package into channels/juejin', () => {

@@ -22,7 +22,7 @@ Adapt technical Markdown or a content package into Juejin-ready article content.
 1. Identify source content.
 2. Generate `channels/juejin/` with `article.juejin.md`, `metadata.json`, `publish-checklist.md`, and `browser-playbook.md`.
 3. Add Juejin front matter with `theme` and `highlight`.
-4. Check code blocks, technical tags, category, title, and summary.
+4. Check code blocks, technical tags, category, title, summary, external links, Markdown preview, and code highlighting.
 5. If browser automation is available, open the Juejin editor and fill a draft only after the package is ready.
 6. Stop before publish unless the user explicitly says `确认发布到掘金` or `确认更新掘金文章`.
 
