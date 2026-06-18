@@ -43,6 +43,9 @@ coverage/
 .tmp/
 tmp/
 
+# Local docs scratch
+/docs/
+
 # Logs and temporary files
 *.log
 *.tmp

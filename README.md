@@ -47,7 +47,7 @@
 - 自动注册 `playwright` 与 `chrome-devtools` MCP，用于浏览器自动化；如用户已有自定义 `mcp.playwright` 或 `mcp.chrome-devtools`，插件不会覆盖。
 - `tools/zhihu`、`tools/xiaohongshu`、`tools/juejin` 中的渠道发布工具为 OpenCode custom tools，用于生成渠道包、浏览器操作手册、自动化引导和发布前检查；发布上线必须人工确认。
 
-安装说明见 [.opencode/INSTALL.md](./.opencode/INSTALL.md)。
+安装说明见 [.opencode/INSTALL.md](./.opencode/INSTALL.md)。插件安装、缓存、更新和版本 pin 策略见 [OpenCode 插件安装与更新机制](./OpenCode插件安装与更新机制.md)。
 
 ---
 
