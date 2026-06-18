@@ -1,235 +1,35 @@
 ---
 name: zhihu-article-manager
-version: 1.5.0
-description: Use when managing Zhihu articles, 知乎文章, 知乎专栏, 知乎草稿, publishing workflows, content topic/generation/review, markdown-to-Zhihu channel adaptation, browser automation setup guidance, draft saving, or AI-assisted Zhihu content operations in OpenCode.
+version: 1.6.0
+description: Use when managing Zhihu articles, 知乎文章, 知乎专栏, 知乎草稿, publishing workflows, content topic/generation/review, markdown-to-Zhihu channel adaptation, browser automation setup guidance, draft saving, or AI-assisted Zhihu content operations in OpenCode. Compatibility entry; prefer zhihu-publisher for new work.
 ---
 
 # zhihu-article-manager
 
-## 目标
+## Compatibility Notice
 
-让 OpenCode 智能体以“内容管理 + 渠道管理”两层结构安全管理知乎内容发布。知乎只是第一个发布渠道；未来小红书、公众号、微博、X 等渠道应复用内容管理层，只新增渠道适配。
+This Skill is kept as a compatibility entry for existing users and prompts.
 
-## 分层模型
+For new work, use `zhihu-publisher`. It provides the channel-specific publishing workflow, unified channel package metadata, browser playbooks, and explicit publish gates.
 
-### 内容管理层：平台无关
+## Routing
 
-内容管理负责：
+When this Skill is triggered:
 
-1. **内容选题**：明确主题、目标读者、核心问题、内容角度和目标渠道。
-2. **内容生成**：生成平台无关 Markdown 正文、标题、摘要、标签和内容包。
-3. **内容预审**：检查事实、敏感信息、版权、外链、夸大表达和平台合规风险。
+1. Treat the user intent as Zhihu publishing or Zhihu draft management.
+2. Follow the `zhihu-publisher` workflow.
+3. Prefer these tools:
+   - `zhihu_prepare_publish`
+   - `zhihu_prepare_article`
+   - `zhihu_browser_setup_guide`
+   - `zhihu_draft_playbook`
+4. Keep the same safety boundary: no Cookie, Token, `.env`, browser profile, or automatic publish.
 
-优先调用：
+## Publish Gate
 
-```text
-content_prepare_package
-```
+Only publish or update after the user explicitly replies:
 
-### 渠道管理层：平台相关
+- `确认发布到知乎`
+- `确认更新知乎文章`
 
-知乎渠道负责：
-
-1. **渠道内容获取**：读取通用内容包或用户提供的 Markdown，并生成知乎适配内容。
-2. **保存草稿**：依赖浏览器自动化打开知乎创作页，用户登录后由 AI 辅助填写并保存草稿。
-3. **发布上线**：必须用户明确确认后才能点击发布或更新。
-
-一句话发布意图优先调用：
-
-```text
-zhihu_prepare_publish
-```
-
-已有通用内容包时再调用：
-
-```text
-zhihu_prepare_article
-```
-
-浏览器能力缺失时调用：
-
-```text
-zhihu_browser_setup_guide
-```
-
-## 浏览器自动化引导
-
-不要把“缺少浏览器能力”直接抛给用户。先主动判断当前环境能力：
-
-- 如果已有 browser/chrome-devtools/playwright 类工具：进入知乎草稿/发布流程。
-- 如果没有浏览器自动化能力：调用 `zhihu_browser_setup_guide`，给用户可复制的 OpenCode MCP 配置、重启提醒、登录步骤和验证动作。
-- 如果配置后仍不可用：降级为内容包 + 知乎适配包，不声称已保存草稿或发布。
-
-浏览器自动化只操作页面，不读取 Cookie、Token、账号密码、浏览器 profile 文件或 `.env`。
-
-为降低知乎风控概率，自动化默认只操作创作后台、内容管理、编辑器和草稿页；不要用自动化打开公开文章页或公开专栏页做验收。公开页由用户手动打开确认。
-
-## 用户入口
-
-用户可能只会说一句人话，不会说“内容包”“渠道适配”“MCP”。遇到以下表达，直接进入全流程编排，不要先解释架构：
-
-| 用户说法 | 默认意图 |
-|---|---|
-| `把这个文章发布知乎` | 使用当前对话文章或当前文件，准备知乎发布，发布前停住 |
-| `把 article.md 发知乎` | 读取文件，生成内容包和知乎适配包，打开知乎草稿流程 |
-| `发到知乎` | 如果上下文已有文章则继续；没有文章才问“要发布哪篇文章？” |
-| `打开知乎创作页` | 只打开知乎创作页并识别登录状态，不发布 |
-
-默认交互原则：
-
-1. 少问。能从当前消息、当前文件名、当前目录候选推断的，不让用户解释流程。
-2. 先做可逆动作。内容包、渠道包、打开页面、保存草稿是可逆动作；发布上线必须确认。
-3. 不把技术依赖甩给用户。浏览器能力缺失时，先调用 `zhihu_browser_setup_guide`，告诉用户“我已经准备好配置/需要重启”，而不是让用户研究 MCP。
-4. 只在缺少文章内容、存在多个候选文件、或即将发布上线时提问。
-
-## 推荐流程
-
-### 1. 内容选题
-
-先问或提炼：
-
-- 主题/问题是什么？
-- 目标读者是谁？
-- 内容目标是解释、说服、复盘、教程还是引流？
-- 目标渠道是否只有知乎，还是还要小红书/公众号等？
-
-信息足够时，直接进入内容包生成；信息不足时，只问影响成稿的关键问题。
-
-当用户说“这个文章”但未粘贴正文时，按顺序找来源：
-
-1. 当前对话最近一篇完整文章。
-2. 用户明确提到的文件名。
-3. 当前目录下明显的 Markdown 候选文件。
-4. 如果仍不确定，只问一句：`要发布哪篇文章？可以给我文件名或直接粘贴正文。`
-
-### 2. 内容生成
-
-如果用户是一句话发布到知乎，例如 `把这个文章发布知乎`，优先调用 `zhihu_prepare_publish` 一次性完成内容包和知乎渠道包，避免让模型手动拼接多个工具。
-
-如果用户只要求内容管理或多渠道准备，再调用 `content_prepare_package`，生成平台无关内容包：
-
-- `content.md`
-- `metadata.json`
-- `review-checklist.md`
-- `channels/`
-
-内容包是长期内容资产，不绑定知乎。
-
-### 3. 内容预审
-
-对照内容包的 `review-checklist.md` 检查：
-
-- 是否包含私有材料、客户信息、内部指标、账号凭证。
-- 是否有未经确认的数据、绝对化表达、夸大承诺。
-- 是否需要引用来源或补充上下文。
-- 是否适合当前目标渠道。
-
-预审不过时，先修改内容，不进入渠道发布。
-
-### 4. 知乎渠道适配
-
-调用 `zhihu_prepare_article`：
-
-- 如果已有通用内容包，传入 `content_package_dir`，输出到 `channels/zhihu/`。
-- 如果只有临时正文，可传入 `title` + `markdown`，生成独立知乎渠道包。
-
-知乎适配包包含：
-
-- `article.zhihu.md`
-- `metadata.json`
-- `publish-checklist.md`
-- `browser-playbook.md`
-
-### 5. 保存草稿
-
-若浏览器自动化可用：
-
-1. 打开 `https://www.zhihu.com/creator` 或知乎写文章入口。
-2. 如未登录，提示用户在页面手动登录；不要索要 Cookie/Token。
-3. 进入文章编辑器。
-4. 标题可直接填；正文不要把“直接填充编辑器”作为最终方案，因为页面可见不代表知乎内部字数已更新。
-5. 正文优先走“导入 → 导入文档”上传无图 Markdown。
-6. 插图按下方“草稿导入与插图打通流程”逐张定位插入。
-7. 保存草稿或停在可保存状态，并汇报草稿状态。
-8. 验收仅使用创作后台状态；不要自动化访问公开文章/专栏页验证。
-
-#### 草稿导入与插图打通流程
-
-1. **导入前清空**：导入前必须确认正文为空；若旧正文未清空，知乎导入会追加，造成正文重复和图片重复。
-2. **无图导入**：先导入无图 Markdown，只解决正文、格式和内部字数统计。不要依赖含图 Markdown/DOCX 导入正文图；知乎可能丢图或追加正文。
-3. **导入后验证**：检查字数非 `0`、正文开头只出现 `1` 次、第一节标题只出现 `1` 次、正文图片数为 `0`。
-4. **等保存并刷新**：等待草稿保存状态稳定，确认出现“刚刚 · 草稿”等状态后刷新草稿编辑页，再次验证字数、正文重复次数和正文图片数。刷新后状态正常，说明知乎内部编辑器已接受正文。
-5. **逐张重新定位**：正文图数量和位置按文章表达核心决定，不固定 3 张。每张图开始前都重新定位光标到目标段落后或目标小标题前，不复用上一张图的光标状态。
-6. **单张上传插入**：打开图片弹窗后只上传当前单张图片，等待出现 `已上传 1 张图片`，然后必须点击“插入图片”。只上传不点插入不会进入正文。
-7. **逐张验证**：每插入一张图后等待数秒，立即验证图片数递增、`添加图片注释` 占位数递增、正文仍只出现 `1` 份、字数稳定、图片前后段落符合目标位置。
-8. **异常即停**：发现字数为 `0`、正文重复、图片数量异常、弹窗未关闭或图片堆叠时，立即停止并恢复干净正文，不继续叠加操作。
-
-若工具生成了 `browser-playbook.md`，浏览器操作时优先按该文件执行。
-
-若浏览器自动化不可用：
-
-1. 调用 `zhihu_browser_setup_guide`。
-2. 给出配置代码块和重启步骤。
-3. 告知当前只能生成内容包和知乎适配包。
-
-### 6. 发布上线
-
-发布或更新前必须输出确认摘要：
-
-```text
-准备发布/更新到知乎：
-- 标题：...
-- 来源内容包：...
-- 知乎适配包：...
-- 标签：...
-- 摘要：...
-- 预计动作：发布新文章 / 更新已有文章
-- 风险提示：私有信息、内部链接、未经确认数据、敏感观点、版权
-
-请明确回复“确认发布到知乎”或“确认更新知乎文章”，我再继续。
-```
-
-只有用户明确授权后才能点击发布/更新。不要把“继续”“可以”“行”推断为发布授权。
-
-## 知乎风格检查
-
-- 标题具体，避免空泛鸡汤和夸张营销。
-- 开头 3 段交代问题、场景、结论或收益。
-- 正文分层清晰，每节有明确小标题。
-- 技术文保留代码块、命令、路径、版本、边界条件。
-- 观点文区分事实、判断和建议。
-- 外链数量克制；公开内容不得泄露私有材料、客户信息、内部指标。
-- 结尾给出可执行清单或下一步。
-
-## 安全规则
-
-- 不读取或写入 Cookie、Token、账号密码、`.env`、浏览器 profile 敏感文件。
-- 不把登录态、Cookie、知乎账号 ID、私有草稿原文写入公开仓库。
-- 不使用逆向接口绕过登录、验证码、审核或平台限制。
-- 不自动删除文章、撤回文章、修改账号设置、批量发布。
-- 不用自动化打开公开文章页或公开专栏页做验收；公开页链接交给用户手动确认。
-- 浏览器页面出现 `40362`、异常请求、安全、审核、违规、验证码、登录异常提示时，立即停止并汇报。
-
-## 输出格式
-
-完成任务后按以下结构汇报：
-
-```text
-建议：...
-事实：...
-判断：...
-已执行：...
-待确认：...
-下一步：...
-```
-
-涉及渠道发布时补充：
-
-```text
-内容包：<路径或未生成>
-渠道：知乎
-知乎适配包：<路径或未生成>
-浏览器能力：可用 / 不可用，已给出配置引导
-发布门禁：已停在发布前 / 已保存草稿 / 已获确认并发布 / 未发布，原因...
-知乎链接：<链接或待补齐>
-```
+Do not treat `继续`, `可以`, `ok`, or `行` as publish authorization.

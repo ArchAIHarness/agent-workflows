@@ -104,7 +104,7 @@ function buildChecklist({ title, body, tags, summary, canonicalUrl }) {
   return checklist;
 }
 
-function buildBrowserPlaybook({ title }) {
+export function buildZhihuBrowserPlaybook({ title }) {
   return [
     `# 知乎浏览器操作手册：${title}`,
     '',
@@ -175,6 +175,16 @@ function safeSlug(title) {
   return `${normalized || 'article'}-${digest}`;
 }
 
+function buildSession(channel, title) {
+  const digest = crypto.createHash('sha1').update(`${channel}:${title}:${Date.now()}`).digest('hex').slice(0, 10);
+  return {
+    id: `${channel}-${digest}`,
+    status: 'package-prepared',
+    current_step: 'channel-package-created',
+    recoverable: true,
+  };
+}
+
 export function prepareZhihuArticlePackage(input = {}) {
   let sourceContentPackage = '';
   let packageMetadata = {};
@@ -219,9 +229,13 @@ export function prepareZhihuArticlePackage(input = {}) {
     tags,
     canonical_url: canonicalUrl,
     source_content_package: sourceContentPackage || '',
-    channel_actions: ['fetch-channel-content', 'save-draft-with-browser-automation', 'publish-after-human-confirmation'],
-    generated_at: new Date().toISOString(),
+    draft_gate: 'browser-or-manual',
     publish_gate: 'manual-confirmation-required',
+    channel_actions: ['fetch-channel-content', 'save-draft-with-browser-automation', 'publish-after-human-confirmation'],
+    assets: [],
+    image_plan: [],
+    session: buildSession('zhihu', title),
+    generated_at: new Date().toISOString(),
     sensitive_findings: sensitiveFindings,
     checklist,
   };
@@ -233,7 +247,7 @@ export function prepareZhihuArticlePackage(input = {}) {
 
   fs.writeFileSync(articlePath, body.endsWith('\n') ? body : `${body}\n`, 'utf8');
   fs.writeFileSync(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`, 'utf8');
-  fs.writeFileSync(browserPlaybookPath, buildBrowserPlaybook({ title }), 'utf8');
+  fs.writeFileSync(browserPlaybookPath, buildZhihuBrowserPlaybook({ title }), 'utf8');
   fs.writeFileSync(
     checklistPath,
     [
@@ -356,6 +370,16 @@ export function createZhihuTools(tool) {
       args: {},
       async execute() {
         return getZhihuBrowserAutomationGuide();
+      },
+    }),
+
+    zhihu_draft_playbook: tool({
+      description: '返回知乎草稿导入、刷新验收、逐张插图和发布门禁操作手册。不会读取 Cookie/Token，也不会发布文章。',
+      args: {
+        title: tool.schema.string({ description: '知乎文章标题，用于生成操作手册标题' }),
+      },
+      async execute(args) {
+        return buildZhihuBrowserPlaybook({ title: args.title });
       },
     }),
 

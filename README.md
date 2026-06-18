@@ -7,7 +7,7 @@
 [![OpenCode](https://img.shields.io/badge/OpenCode-Plugin%20%7C%20Agents%20%7C%20Skills-6E40C9?logo=opensourceinitiative&logoColor=white)](https://opencode.ai)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Agents](https://img.shields.io/badge/agents-3-success.svg)](#agents)
-[![Skills](https://img.shields.io/badge/skills-4-blue.svg)](#skills)
+[![Skills](https://img.shields.io/badge/skills-8-blue.svg)](#skills)
 
 </div>
 
@@ -21,7 +21,7 @@
 
 - 日常办公：办公材料整理、正式简历制作。
 - 编码开发：DDD Java / Spring Boot 多模块开发。
-- 内容运营：内容选题、内容生成、内容预审，与知乎等发布渠道适配分离。
+- 内容运营：内容选题、内容生成、内容预审，与知乎、小红书、掘金等发布渠道适配分离。
 - 质量评估：基于项目自身设计文档的代码质量评估。
 
 ---
@@ -45,7 +45,7 @@
 - `skills/**/SKILL.md` 为 OpenCode skills。
 - 依赖内置的 `superpowers` skills 会从 `node_modules/superpowers/skills` 自动注册，用户无需单独安装。
 - 自动注册 `playwright` 与 `chrome-devtools` MCP，用于浏览器自动化；如用户已有自定义 `mcp.playwright` 或 `mcp.chrome-devtools`，插件不会覆盖。
-- `tools/zhihu` 中的 `zhihu_prepare_publish` / `zhihu_prepare_article` / `zhihu_browser_setup_guide` 为 OpenCode custom tools，用于一句话知乎发布准备、渠道适配、浏览器自动化引导和发布前检查。
+- `tools/zhihu`、`tools/xiaohongshu`、`tools/juejin` 中的渠道发布工具为 OpenCode custom tools，用于生成渠道包、浏览器操作手册、自动化引导和发布前检查；发布上线必须人工确认。
 
 安装说明见 [.opencode/INSTALL.md](./.opencode/INSTALL.md)。
 
@@ -71,7 +71,11 @@
 |---|---|---|---|
 | [`formal-resume-builder`](./skills/office/formal-resume-builder/) | office | 正式简历制作、排版、HTML/PDF 输出和质量校验 | 1.0.0 |
 | [`ddd-java-developer`](./skills/engineering/ddd-java-developer/) | engineering | DDD Java / Spring Boot 多模块开发约束流程 | 1.0.0 |
-| [`zhihu-article-manager`](./skills/content/zhihu-article-manager/) | content | 一句话知乎发布编排、内容管理与渠道适配、草稿导入/刷新后插图打通、风控友好操作和发布门禁 | 1.5.0 |
+| [`content-package-manager`](./skills/content/content-package-manager/) | content | 平台无关内容包、内容预审和多渠道发布准备 | 1.0.0 |
+| [`zhihu-publisher`](./skills/content/zhihu-publisher/) | content | 知乎渠道包、草稿导入/刷新验收、逐张插图和发布门禁 | 1.0.0 |
+| [`zhihu-article-manager`](./skills/content/zhihu-article-manager/) | content | 知乎旧入口兼容 Skill；新工作优先使用 `zhihu-publisher` | 1.6.0 |
+| [`xiaohongshu-publisher`](./skills/content/xiaohongshu-publisher/) | content | 小红书图文笔记、卡片规划、话题适配和发布门禁 | 1.0.0 |
+| [`juejin-publisher`](./skills/content/juejin-publisher/) | content | 掘金技术 Markdown、front matter、分类标签和发布门禁 | 1.0.0 |
 | [`code-quality`](./skills/quality/code-quality/) | quality | 基于项目自身设计文档的 AI 代码质量评估 | 9.0 |
 
 ---
@@ -84,7 +88,9 @@
 | [`tools/java`](./tools/java/) | Java / DDD 工程检查和模板辅助工具 |
 | [`tools/quality`](./tools/quality/) | 质量评估辅助工具 |
 | [`tools/content`](./tools/content/) | 平台无关内容选题、生成、预审和内容包工具 |
-| [`tools/zhihu`](./tools/zhihu/) | 知乎渠道适配、浏览器自动化引导和发布前检查工具 |
+| [`tools/zhihu`](./tools/zhihu/) | 知乎渠道适配、浏览器自动化引导、草稿操作手册和发布前检查工具 |
+| [`tools/xiaohongshu`](./tools/xiaohongshu/) | 小红书图文笔记渠道包、卡片规划、浏览器操作手册和发布前检查工具 |
+| [`tools/juejin`](./tools/juejin/) | 掘金技术文章渠道包、front matter、浏览器操作手册和发布前检查工具 |
 
 ---
 
@@ -96,6 +102,8 @@ agent-workflows/
 ├── README.md
 ├── AGENTS.md
 ├── LICENSE
+├── docs/
+│   └── superpowers/
 ├── .opencode/
 │   └── INSTALL.md
 ├── opencode-plugin.js
@@ -110,7 +118,9 @@ agent-workflows/
     ├── java/
     ├── quality/
     ├── content/
-    └── zhihu/
+    ├── zhihu/
+    ├── xiaohongshu/
+    └── juejin/
 ```
 
 ---

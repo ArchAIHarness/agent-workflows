@@ -170,6 +170,34 @@ test('createZhihuTools exposes zhihu channel tool definitions', () => {
   assert.ok(tools.zhihu_prepare_article.args.title);
 });
 
+test('prepareZhihuArticlePackage returns unified channel metadata fields', () => {
+  const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zhihu-tool-test-'));
+  const result = prepareZhihuArticlePackage({
+    title: '统一渠道协议测试文章',
+    markdown: '# 开头\n\n用于验证知乎渠道包 metadata 协议。',
+    tags: 'AI,知乎',
+    output_dir: outputDir,
+  });
+
+  assert.equal(result.metadata.type, 'channel-package');
+  assert.equal(result.metadata.channel, 'zhihu');
+  assert.equal(result.metadata.draft_gate, 'browser-or-manual');
+  assert.equal(result.metadata.publish_gate, 'manual-confirmation-required');
+  assert.ok(Array.isArray(result.metadata.channel_actions));
+  assert.ok(Array.isArray(result.metadata.assets));
+  assert.ok(Array.isArray(result.metadata.image_plan));
+  assert.ok(result.metadata.session.id.startsWith('zhihu-'));
+  assert.equal(result.metadata.session.status, 'package-prepared');
+});
+
+test('createZhihuTools exposes zhihu_draft_playbook', async () => {
+  const tools = createZhihuTools(tool);
+  assert.ok(tools.zhihu_draft_playbook);
+  const result = await tools.zhihu_draft_playbook.execute({ title: '知乎草稿手册测试' }, { directory: process.cwd() });
+  assert.match(result, /知乎浏览器操作手册/);
+  assert.match(result, /导入无图 Markdown/);
+});
+
 test('plugin registers zhihu_prepare_article alongside config hook', async () => {
   const plugin = await ArchAIAgentWorkflowsPlugin();
   assert.equal(typeof plugin.config, 'function');
