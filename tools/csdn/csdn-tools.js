@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { normalizeList, scanSensitiveContent } from '../content/content-tools.js';
+import { normalizeList, prepareContentPackage, scanSensitiveContent } from '../content/content-tools.js';
 
 function stripFrontmatter(markdown) {
   return String(markdown || '').replace(/^---\n[\s\S]*?\n---\n/, '').trim();
@@ -27,6 +27,39 @@ function safeSlug(title) {
     .replace(/^-+|-+$/g, '')
     .slice(0, 48);
   return `${normalized || 'csdn-article'}-${digest}`;
+}
+
+const MAX_SOURCE_FILE_BYTES = 2 * 1024 * 1024;
+const FORBIDDEN_SOURCE_PATH_PATTERN = /(^|[/.\\_-])(\.env|cookie|token|secret|password|passwd|credential|credentials|profile|config\.(ya?ml|json))(?:$|[/.\\_-])/i;
+
+function assertSafeSourceFile(sourceFile) {
+  const sourcePath = path.resolve(String(sourceFile));
+  const sourceExt = path.extname(sourcePath).toLowerCase();
+  if (!['.md', '.markdown'].includes(sourceExt)) {
+    throw new Error('source_file only supports .md or .markdown files');
+  }
+  if (FORBIDDEN_SOURCE_PATH_PATTERN.test(sourcePath)) {
+    throw new Error('source_file path looks sensitive; provide sanitized markdown content instead');
+  }
+
+  const linkStat = fs.lstatSync(sourcePath);
+  if (linkStat.isSymbolicLink()) {
+    throw new Error('source_file must not be a symbolic link');
+  }
+
+  const realPath = fs.realpathSync(sourcePath);
+  const realExt = path.extname(realPath).toLowerCase();
+  if (!['.md', '.markdown'].includes(realExt)) {
+    throw new Error('source_file only supports .md or .markdown files');
+  }
+  if (FORBIDDEN_SOURCE_PATH_PATTERN.test(realPath)) {
+    throw new Error('source_file path looks sensitive; provide sanitized markdown content instead');
+  }
+
+  const stat = fs.statSync(realPath);
+  if (!stat.isFile()) throw new Error('source_file must be a regular file');
+  if (stat.size > MAX_SOURCE_FILE_BYTES) throw new Error('source_file is too large; limit is 2MB');
+  return realPath;
 }
 
 function buildSession(channel, title) {
@@ -231,7 +264,7 @@ export function buildCsdnBrowserPlaybook({ title, images = [] }) {
     '## 原则',
     '',
     '- 不读取 Cookie、Token、密码、浏览器 profile 或 `.env`。',
-    '- 不点击发布或更新，除非用户明确回复“确认发布到 CSDN”或“确认更新 CSDN 文章”。',
+    '- 不点击发布或更新，除非用户明确回复"确认发布到 CSDN"或"确认更新 CSDN 文章"。',
     '- 不执行评论、私信、关注、批量运营、引流等动作。',
     '- 出现验证码、安全验证、登录异常、审核提示或账号风险提示时立即停止。',
     '',
@@ -239,7 +272,7 @@ export function buildCsdnBrowserPlaybook({ title, images = [] }) {
     '',
     '### ✅ 安全操作',
     '',
-    '- 通过「更多操作 → 导入」导入 Markdown 文件填充正文',
+    '- 通过「更多操作 → 导入」导入 Markdown 文件填充正文（**首选**）',
     '- 使用 `execCommand(\'selectAll\') + execCommand(\'insertText\')` 全量替换正文',
     '- 使用 `execCommand(\'insertText\')` 在光标位置插入文本',
     '- 点击工具栏按钮打开对话框（图片、链接、更多插入等）',
@@ -254,17 +287,52 @@ export function buildCsdnBrowserPlaybook({ title, images = [] }) {
     '- 用 createTextNode + appendChild 设置内容（格式会丢失）',
     '- 绕过登录态、验证码、安全验证的任何操作',
     '',
-    '## 草稿流程',
+    '## 草稿导入稳定流程',
+    '',
+    '> **重要**：CSDN Markdown 编辑器的粘贴行为不可靠。推荐优先用「导入」方式，粘贴仅作降级。',
+    '',
+    '### 方案 A：文件导入（推荐）',
+    '',
+    '1. 打开 CSDN Markdown 编辑器（确认 URL 含 `editor.csdn.net/md/`）。',
+    '2. 如未登录，让用户在浏览器页面手动登录。',
+    '3. 确认编辑器当前是 Markdown 模式（左下角有「Markdown」标识或切换按钮）。',
+    '4. 点击右上角「更多操作」或 `···` 按钮，展开菜单。',
+    '5. 选择「导入」选项，打开文件选择对话框。',
+    '6. 选择 `article.csdn.md`（有图片则选 `article.placeholder.md`）。',
+    '7. 等待导入完成后验证：',
+    '   - 正文首段内容与文件一致',
+    '   - 代码块正常显示（没有被转义）',
+    '   - 标题区域内容正确（导入后标题可能是文件名，需修正）',
+    '   - 有图片时，占位符 `@@@IMG_N@@@` 完整出现在正文中',
+    '8. 修正标题：用 `titleInput.value = 标题` + dispatchEvent 触发 input/change 事件。',
+    '9. 保存草稿，确认草稿状态稳定。',
+    '',
+    '### 方案 B：execCommand 全量替换（降级）',
+    '',
+    '当「导入」按钮不可用或导入失败时使用：',
+    '',
+    '1. 点击编辑器正文区域获得焦点。',
+    '2. 执行 `document.execCommand(\'selectAll\')` 全选当前内容。',
+    '3. 执行 `document.execCommand(\'insertText\', false, markdownContent)` 插入新内容。',
+    '4. 验证：正文首段出现、代码块完整、没有「undefined」或「[object Object]」。',
+    '5. 如内容不对，撤销（Ctrl+Z）后重试，或让用户手动粘贴。',
+    '',
+    '### 方案 C：用户手动粘贴（最终降级）',
+    '',
+    '当以上方案都不可靠时，停下来让用户手动粘贴：',
+    '',
+    '1. 告诉用户：请手动把 `article.csdn.md` 的内容粘贴到 CSDN 编辑器。',
+    '2. 用户粘贴完成后，AI 再继续做分类、标签、原创声明等元信息设置。',
+    '',
+    '## 草稿流程总览',
     '',
     '### 第一阶段：基础内容填充',
     '',
     '1. 打开 CSDN 创作中心或 Markdown 编辑器。',
     '2. 如未登录，让用户在浏览器页面手动登录。',
     '3. 选择 Markdown 编辑器或确认当前编辑器支持 Markdown。',
-    '4. **推荐方式**：点击「更多操作 → 导入」选择 `article.csdn.md` 导入内容。',
-    '5. 修正标题：导入后标题会变成文件名，需手动设置正确标题。',
-    '   - 设置方式：`titleInput.value = 标题` + dispatchEvent 触发 input/change 事件',
-    '   - 降级选择器：`input[placeholder*="标题"]` → `#txtTitle` → `.article-title input`',
+    '4. 按「草稿导入稳定流程」导入正文内容（优先方案 A）。',
+    '5. 修正标题。',
     '6. 填写或核对分类、标签和原创/转载/翻译声明。',
     '',
     '### 第二阶段：图片上传（有图片时执行）',
@@ -293,7 +361,19 @@ export function buildCsdnBrowserPlaybook({ title, images = [] }) {
     '   - 目录结构正确',
     '   - 标题与正文首屏一致',
     '2. 保存草稿。',
-    '3. 停在发布前，等待用户明确回复“确认发布到 CSDN”。',
+    '3. 停在发布前，等待用户明确回复"确认发布到 CSDN"。',
+    '',
+    '## 常见问题与故障排查',
+    '',
+    '| 问题 | 可能原因 | 处理方式 |',
+    '|------|---------|---------|',
+    '| 粘贴后内容为空或只有部分 | CSDN 编辑器拦截了 clipboard 事件 | 改用「导入」方式，或 execCommand 方案 |',
+    '| 导入后标题是文件名 | 导入功能用文件名做标题 | 手动设置正确标题 |',
+    '| 代码块格式乱了 | 导入时 Markdown 解析有问题 | 检查源文件代码块围栏是否配对；用方案 B 重试 |',
+    '| 图片上传后不显示 | 外链图片转存失败或上传超时 | 必须用占位符替换法，逐张上传本地图片 |',
+    '| 工具栏按钮找不到 | CSDN UI 改版了 | 截图检查实际布局，调整选择器 |',
+    '| 分类/标签弹窗打不开 | 编辑器没获得焦点 | 先点击正文区域，再操作工具栏 |',
+    '| 保存草稿失败 | 网络问题或内容含敏感词 | 检查网络；分段保存定位问题内容 |',
     '',
     '## 降级选择器参考',
     '',
@@ -305,6 +385,8 @@ export function buildCsdnBrowserPlaybook({ title, images = [] }) {
     '| 工具栏图片按钮 | 「更多插入」左侧第二个按钮 | `button[aria-label*="图片"]` | `button[title*="图片"]` |',
     '| 标签输入框 | `input[placeholder*="请输入文字搜索"]` | `input[placeholder*="标签"]` | `.tag-dialog input` |',
     '| 摘要输入框 | `textarea[aria-label*="摘要"]` | `textarea[placeholder*="摘要"]` | `#txtSammary` |',
+    '| 更多操作按钮 | `button:has-text("更多操作")` | `.more-ops-btn` | `button[aria-label*="更多"]` |',
+    '| 导入按钮 | `button:has-text("导入")` | `.import-btn` | `li:has-text("导入")` |',
     '| 保存草稿按钮 | `button:has-text("保存草稿")` | `.button-save` | `button[aria-label*="保存"]` |',
     '| 发布文章按钮 | `button:has-text("发布文章")` | `.publish-btn` | `button[aria-label*="发布"]` |',
     '',
@@ -349,7 +431,12 @@ export function prepareCsdnArticlePackage(input = {}) {
 
   const title = String(input.title || packageMetadata.title || '').trim();
   if (!title) throw new Error('title is required');
-  if (!String(markdown).trim()) throw new Error('markdown or content_package_dir is required');
+
+  if (input.source_file) {
+    const sourcePath = assertSafeSourceFile(input.source_file);
+    markdown = fs.readFileSync(sourcePath, 'utf8');
+  }
+  if (!String(markdown).trim()) throw new Error('markdown, source_file, or content_package_dir is required');
 
   const tags = normalizeList(input.tags || packageMetadata.tags || []);
   const category = String(input.category || packageMetadata.category || '人工智能').trim();
@@ -507,14 +594,76 @@ export function prepareCsdnArticlePackage(input = {}) {
   };
 }
 
+export function prepareCsdnPublishWorkflow(input = {}) {
+  const contentPackage = prepareContentPackage({
+    topic: input.topic,
+    title: input.title,
+    markdown: input.markdown,
+    tags: input.tags,
+    summary: input.summary,
+    target_channels: 'csdn',
+    output_dir: input.output_dir,
+  });
+  const csdnPackage = prepareCsdnArticlePackage({
+    content_package_dir: contentPackage.package_dir,
+    title: input.title,
+    tags: input.tags,
+    category: input.category,
+    article_type: input.article_type,
+    summary: input.summary,
+  });
+  return {
+    content_package: contentPackage,
+    csdn_package: csdnPackage,
+    publish_gate: csdnPackage.metadata.publish_gate,
+  };
+}
+
 export function createCsdnTools(tool) {
   return {
+    csdn_prepare_publish: tool({
+      description: '一键准备 CSDN 发布流程：从用户文章生成平台无关内容包和 channels/csdn 渠道包，保留发布确认门禁，不点击发布。适合"把这篇文章发 CSDN"这类一句话意图。',
+      args: {
+        title: tool.schema.string({ description: '文章标题' }),
+        markdown: tool.schema.string({ description: '文章正文 Markdown' }),
+        topic: tool.schema.string({ description: '内容选题或核心问题' }).optional(),
+        tags: tool.schema.string({ description: '标签，逗号分隔' }).optional(),
+        category: tool.schema.string({ description: 'CSDN 分类，如 人工智能、后端、前端、云原生' }).optional(),
+        article_type: tool.schema.string({ description: '文章类型：original、repost、translation，默认 original' }).optional(),
+        summary: tool.schema.string({ description: '摘要，可留空自动提取' }).optional(),
+        output_dir: tool.schema.string({ description: '内容包输出目录；默认当前项目 .tmp/content-packages' }).optional(),
+      },
+      async execute(args, context) {
+        try {
+          const result = prepareCsdnPublishWorkflow({
+            ...args,
+            output_dir: args.output_dir || path.join(context?.directory || process.cwd(), '.tmp', 'content-packages'),
+          });
+          return [
+            'CSDN 发布准备已完成。',
+            `- 内容包：${result.content_package.package_dir}`,
+            `- 内容预审：${result.content_package.review_checklist_path}`,
+            `- CSDN 适配包：${result.csdn_package.package_dir}`,
+            `- CSDN 正文：${result.csdn_package.article_path}`,
+            result.csdn_package.placeholder_path ? `- 占位符版：${result.csdn_package.placeholder_path}` : '',
+            result.csdn_package.image_count > 0 ? `- 图片：${result.csdn_package.image_count} 张，占位符替换法` : '',
+            `- 浏览器操作手册：${result.csdn_package.browser_playbook_path}`,
+            `- 发布门禁：${result.publish_gate}`,
+            '- 下一步：打开 CSDN 创作页，登录后保存草稿；发布前必须明确确认。',
+          ].filter(Boolean).join('\n');
+        } catch (error) {
+          return `CSDN 发布准备失败：${error.message}`;
+        }
+      },
+    }),
+
     csdn_prepare_article: tool({
       description: '准备 CSDN 技术文章渠道包：生成 article.csdn.md、metadata.json、发布检查清单和浏览器操作手册，不读取 Cookie/Token，不发布。',
       args: {
         title: tool.schema.string({ description: 'CSDN 文章标题；使用 content_package_dir 时可省略' }).optional(),
         content_package_dir: tool.schema.string({ description: '通用内容管理包目录；提供后输出到 channels/csdn' }).optional(),
-        markdown: tool.schema.string({ description: 'Markdown 正文；与 content_package_dir 二选一' }).optional(),
+        markdown: tool.schema.string({ description: 'Markdown 正文；与 source_file/content_package_dir 三选一' }).optional(),
+        source_file: tool.schema.string({ description: '本地 Markdown 文件路径；与 markdown/content_package_dir 三选一' }).optional(),
         tags: tool.schema.string({ description: '标签，逗号分隔' }).optional(),
         category: tool.schema.string({ description: 'CSDN 分类，如 人工智能、后端、前端、云原生' }).optional(),
         article_type: tool.schema.string({ description: '文章类型：original、repost、translation，默认 original' }).optional(),

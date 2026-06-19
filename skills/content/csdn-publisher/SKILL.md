@@ -1,6 +1,6 @@
 ---
 name: csdn-publisher
-version: 1.1.0
+version: 1.2.0
 description: |
   Use when preparing or publishing CSDN/CSDN博客 articles, CSDN草稿, technical Markdown, categories, tags, originality declarations, or safe CSDN publishing workflows.
 ---
@@ -13,21 +13,32 @@ Adapt technical Markdown or a content package into CSDN-ready article content wi
 
 ## Default Tools
 
+- One-shot publish prep: `csdn_prepare_publish
 - Article package: `csdn_prepare_article`
 - Browser guidance: `csdn_browser_setup_guide`
 - Draft playbook: `csdn_draft_playbook`
 
 ## Workflow
 
-1. Identify source content.
-2. Generate `channels/csdn/` with `article.csdn.md`, `metadata.json`, `publish-checklist.md`, and `browser-playbook.md`.
-   - If the article contains local images, a `article.placeholder.md` and `images.map.json` will also be generated.
-3. Check title, summary, category, tags, originality declaration, Markdown code fences, images, links, and sensitive information.
-4. If browser automation is available, open the CSDN creator/editor and fill a draft only after the package is ready.
-   - **Import method preferred**: Use 「更多操作 → 导入」to import the Markdown file into the editor.
-   - After import, fix the title (import sets title from filename).
-   - For articles with images, use the **placeholder replacement method**: import `article.placeholder.md`, then replace each `@@@IMG_N@@@` placeholder with an uploaded image.
-5. Stop before publish unless the user explicitly says `确认发布到 CSDN` or `确认更新 CSDN 文章`.
+1. Identify source content (markdown string, source file, or a content package.
+2. **One-shot flow (recommended for "publish this to CSDN" intents): call `csdn_prepare_publish` — generates both the content review package and CSDN channel package in one step.
+3. **Channel-only flow: call `csdn_prepare_article` directly if you already have a content package or raw markdown.
+4. Check title, summary, category, tags, originality declaration, Markdown code fences, images, links, and sensitive information.
+5. If browser automation is available, open the CSDN creator/editor and fill a draft only after the package is ready.
+6. Stop before publish unless the user explicitly says `确认发布到 CSDN` or `确认更新 CSDN 文章`.
+
+## Draft Import: Three-Tier Strategy
+
+CSDN editor paste behavior is unreliable. Use this priority order:
+
+### Tier A: File Import (Recommended)
+Click 「更多操作 → 导入」and select the Markdown file. Most reliable — preserves formatting and editor internal state.
+
+### Tier B: execCommand Full Replacement (Fallback)
+Use `execCommand('selectAll') + execCommand('insertText') when import is unavailable.
+
+### Tier C: Manual Paste (Last Resort)
+Stop and ask the user to paste manually if both automated methods fail. Always fall back gracefully; never force a method that produces broken or empty content.
 
 ## Image Upload: Placeholder Replacement Method
 
@@ -84,6 +95,8 @@ CSDN UI changes frequently. Prepare 2-3 selectors per action; try the next if th
 | Image toolbar button | 2nd button left of 「更多插入」 | `button[aria-label*="图片"]` | `button[title*="图片"]` |
 | Tag input | `input[placeholder*="请输入文字搜索"]` | `input[placeholder*="标签"]` | `.tag-dialog input` |
 | Summary input | `textarea[aria-label*="摘要"]` | `textarea[placeholder*="摘要"]` | `#txtSammary` |
+| More ops button | `button:has-text("更多操作")` | `.more-ops-btn` | `button[aria-label*="更多"]` |
+| Import button | `button:has-text("导入")` | `.import-btn` | `li:has-text("导入")` |
 | Save draft button | `button:has-text("保存草稿")` | `.button-save` | `button[aria-label*="保存"]` |
 | Publish button | `button:has-text("发布文章")` | `.publish-btn` | `button[aria-label*="发布"]` |
 
@@ -102,6 +115,17 @@ CSDN UI changes frequently. Prepare 2-3 selectors per action; try the next if th
 - Do not use comment, private-message, follow, acquisition, traffic, or growth automation.
 - Do not bypass login, CAPTCHA, audit, or platform risk checks.
 - Do not auto-publish, update, delete, withdraw, comment, follow, or send messages.
+
+## Common Issues & Troubleshooting
+
+| Issue | Likely Cause | Fix |
+|-------|--------------|-----|
+| Paste produces empty/partial content | CSDN editor intercepts clipboard | Use file import instead |
+| Title becomes filename after import | Import uses filename as title | Set correct title after import |
+| Code blocks broken after import | Markdown parsing issue | Check fence pairing; retry with execCommand |
+| Images don't display | External link transfer failed | Use placeholder replacement method |
+| Toolbar buttons not found | CSDN UI changed | Screenshot and adjust selectors |
+| Save draft fails | Network or sensitive content | Check network; save in parts to locate issue |
 
 ## Output Format
 
