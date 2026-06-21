@@ -129,9 +129,10 @@ agent-workflows/
 
 ## 相关仓库
 
-- [docs](https://github.com/ArchAIHarness/docs)
-- [framework](https://github.com/ArchAIHarness/framework)
-- [gateway](https://github.com/ArchAIHarness/gateway)
+- [docs](https://github.com/ArchAIHarness/docs) — 架构哲学、实践方法与落地指南
+- [zhuanlan-ai-and-agents](https://github.com/ArchAIHarness/zhuanlan-ai-and-agents) — 「看懂 AI 与智能体」专栏源码
+- [framework](https://github.com/ArchAIHarness/framework) — DDD + AI 协作工程底座样例
+- [gateway](https://github.com/ArchAIHarness/gateway) — 网关与统一接入样例
 
 ---
 
