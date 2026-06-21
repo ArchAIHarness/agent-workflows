@@ -1,6 +1,6 @@
 ---
 name: csdn-publisher
-version: 2.0.0
+version: 3.0.0
 description: |
   Use when preparing or publishing CSDN/CSDN博客 articles, CSDN草稿, technical Markdown, categories, tags, originality declarations, or safe CSDN publishing workflows.
 ---
@@ -9,377 +9,242 @@ description: |
 
 ## Goal
 
-Adapt technical Markdown or a content package into CSDN-ready article content with safe draft and publish gates.
+Adapt technical Markdown into CSDN-ready article: import content, place inline images at correct positions (CDP mouse + setInputFiles), configure publish settings (cover → tags → summary → column → type → visibility), and save as draft only.
 
-## Core Principle: Don't Guess, Inspect First
+## Core Principle: Inspect Before Act
 
-CSDN's editor is a Vue.js SPA that changes frequently. **Before any operation**, inspect the current DOM:
+CSDN's editor is a Vue SPA. **Always inspect current DOM before any operation.**
 
-1. **Editor mode**: Check if Markdown tab is active (`.editor__inner` → `<pre contenteditable>` exists) or Rich Text.
-2. **Existing article ID**: Read from URL `articleId=XXXXXX`. This ID persists across sessions once a draft is saved. If you close and reopen the editor without saving, the ID changes.
-3. **Editor state**: Check `Markdown | XXXX 字数 | XX 行数` in the status bar for current content health.
-4. **Toolbar visibility**: Make sure the toolbar buttons are rendered before clicking.
-5. **Publish dialog state**: If you closed the publish dialog previously, settings (column, tags, cover) may persist — but you must reopen and verify.
-
-## Default Tools
-
-- One-shot publish prep: `csdn_prepare_publish`
-- Article package: `csdn_prepare_article`
-- Browser guidance: `csdn_browser_setup_guide`
-- Draft playbook: `csdn_draft_playbook`
+Key editor facts (verified against production 2026-06):
+- Editor uses **比对模式** (compare mode): left = markdown source, right = preview
+- Markdown source is split into `<div class="cledit-section" contenteditable="true">` elements
+- NOT a `<pre>` element — the old `textContent` approach is wrong
+- `execCommand('insertText')` inserts text at cursor with correct `\n` handling
+- Image CDN URLs are persisted once uploaded
+- Auto-save triggers ~30s after any change
 
 ## Browser Automation: Tool Selection
 
-CSDN publish workflow needs browser automation. Two options are available; **Playwright MCP is preferred** for this task.
+**Chrome DevTools MCP is preferred** for CSDN tasks on macOS. Playwright MCP is the fallback.
 
-| Tool | Best For | Why |
-|------|----------|-----|
-| **Playwright MCP** ✅ **首选** | 点按钮、填表单、上传文件、页面交互 | `getByRole` 精确匹配元素；`browser_file_upload` 原生支持文件选择器；`run_code_unsafe` 可执行任意 Playwright 代码做复杂操作 |
-| Chrome DevTools MCP | 查网络请求、控制台错误、性能分析、Playwright 失灵时兜底 | 网络面板比 Playwright 直观；查看 `console.error`；Playwright 定位不到元素时备选 |
+| Tool | Strength | Use For |
+|------|----------|---------|
+| **Chrome DevTools MCP** ✅ 首选 | CDP mouse events work on Vue buttons; DOM manipulation; snapshot for inspection | Click buttons that Playwright can't reach; evaluate JS; content inspection |
+| Playwright MCP | `setInputFiles` for file chooser; `getByRole` for standard UI | File upload handling; form filling when DevTools is unreliable |
 
-**Keep both installed.** They coexist in OpenCode (different MCP tools). Default to Playwright MCP for CSDN tasks; fall back to Chrome DevTools when Playwright encounters issues or when you need to inspect network/console state.
+Default to DevTools MCP for navigation/evaluation; use Playwright for file chooser only.
 
-## Workflow
+## End-to-End Workflow
 
-1. Identify source content (markdown string, source file, or a content package).
-2. **One-shot flow** (recommended for "publish this to CSDN" intents): call `csdn_prepare_publish` — generates both the content review package and CSDN channel package in one step.
-3. **Channel-only flow**: call `csdn_prepare_article` directly if you already have a content package or raw markdown.
-4. Check title, summary, category, tags, originality declaration, Markdown code fences, images, links, and sensitive information.
-5. If browser automation is available, open the CSDN creator/editor and fill a draft only after the package is ready.
-6. Stop before publish unless the user explicitly says `确认发布到 CSDN` or `确认更新 CSDN 文章`.
+### Phase 1: Open Editor
 
----
+1. Navigate to `https://mp.csdn.net/mp_blog/manage/article` or direct editor URL.
+2. Click "写文章" or open existing draft.
+3. **Take snapshot** to verify editor loaded; check for toolbar, title input, status bar.
+4. Note `articleId` from URL — stable once a draft is saved.
 
-## Content Injection Into CSDN Editor
+### Phase 2: Inject Body Content
 
-This is the highest-risk and most error-prone step. **Do not rush it.** Verify at every step.
-
-### Step 0: Understand the Editor Architecture
-
-CSDN's Markdown editor uses a **Vue.js component** with this DOM structure:
-
-```
-<pre class="editor__inner markdown-highlighting" contenteditable="true">
-  <!-- text content lives here as bare text nodes -->
-</pre>
-```
-
-Key facts:
-- The element is a `<pre contenteditable>`, not a `<textarea>` or `<div>`.
-- Content is stored as **plain text** (with `\n` newlines), not HTML.
-- The editor's Vue data model and the DOM `textContent` are synced.
-- The **line counter** in the status bar (`XX 行数`) reads from `element.textContent` — it counts real `\n` characters.
-- `highlight.js` (or similar) adds syntax highlighting by wrapping text in `<span>` elements, but the underlying `textContent` is what matters.
-
-### Step 1: Choose the Injection Method (Priority Order)
-
-#### Tier A: File Import (Most Reliable Overall)
-Click **「更多操作 → 导入」** and select the local `.md` file. If available, always prefer this.
-
-**Pros**: Preserves formatting perfectly; no encoding issues.
-**Cons**: Requires a local Markdown file; cannot inject from a string variable.
-
-#### Tier B: `textContent` Injection on `<pre>` Editor (Automation-Friendly)
-When file import is not feasible, inject directly into the `<pre>` element:
+Use `execCommand('insertText')` on the contenteditable editor:
 
 ```javascript
-const ed = document.querySelector('.editor__inner');
-// MUST clear first
-ed.innerHTML = '';
-// Set content as plain text — textContent preserves \n characters
-ed.textContent = fullContent;
-```
-
-**⚠️ CRITICAL: NEVER use `innerText` on `<pre>` elements.**
-- `innerText` converts `\n` to `<br>` HTML elements.
-- CSDN reads `textContent` for line counting, which strips `<br>` tags.
-- Result: `innerText` → shows "2 行数" instead of the real count.
-- **Always use `textContent` on `<pre>` editors.**
-
-**Why `textContent` works:**
-- It preserves actual `\n` newline characters in the DOM.
-- The `contenteditable` state remains active after setting `textContent`.
-- Syntax highlighting (highlight.js) re-scans the `<pre>` content after change.
-- The line counter reads the same `textContent` and shows correct line count.
-
-#### Tier C: `execCommand` Full Replacement (Fallback)
-```javascript
-ed.focus();
+// Step 1: Focus and select all, then delete
+const editor = document.querySelector('.cledit-section').closest('[contenteditable]')
+  || document.querySelector('.md-content');
+editor.focus();
 document.execCommand('selectAll');
+document.execCommand('insertText', false, '');
+
+// Step 2: Insert full markdown at cursor
+// For a large file, the base64+decode approach (see below) is safest
+document.execCommand('insertText', false, markdownContent);
+```
+
+**Content encoding for large files (base64 + decodeURIComponent)**:
+
+```javascript
+const content = decodeURIComponent(escape(atob('BASE64_STRING')));
+const editor = document.querySelector('.cledit-section').parentElement;
+editor.focus();
+// Clear
+document.execCommand('selectAll');
+document.execCommand('insertText', false, '');
+// Insert
 document.execCommand('insertText', false, content);
 ```
 
-**Warning**: May also have `\n` vs `<br>` issues depending on browser/editor state. Verify line count after injection.
+**Verify**: Check status bar shows correct line count (`XX 行数`) and word count (`XXX 字数`).
 
-#### Tier D: Manual Instructions (Last Resort)
-If all automated methods produce broken content, stop and tell the user exactly what to do: open the editor, click Import, and select the file. Never force a method that corrupts content.
+### Phase 3: Place Inline Images (Critical Gate)
 
-### Step 2: Content Encoding for Programmatic Injection
+**Strategy**: Upload each image at its exact position in the markdown, using CDP mouse click to open the upload dialog + Playwright `setInputFiles` to upload.
 
-When building an injection script that runs in the browser context, **content must survive shell escaping**:
-
-**The base64 pattern** (field-verified for Chinese content):
-
-```bash
-# 1. Base64 encode the content
-b64=$(base64 < content.md | tr -d '\n')
-
-# 2. Generate a .mjs injection script
-cat > inject.mjs << 'SCRIPT'
-import { chromium } from 'playwright';
-const browser = await chromium.launch();
-const page = await browser.newPage();
-// ... navigate to editor ...
-
-const content = (() => {
-  // Fix: atob alone mangles Chinese chars (Latin-1 encoding)
-  // Must use decodeURIComponent + escape to preserve UTF-8
-  const b64 = 'PASTE_BASE64_HERE';
-  return decodeURIComponent(escape(atob(b64)));
-})();
-
-await page.evaluate((c) => {
-  const ed = document.querySelector('.editor__inner');
-  ed.innerHTML = '';
-  ed.textContent = c;
-}, content);
-SCRIPT
-
-# 3. Replace the placeholder
-sed -i '' "s/PASTE_BASE64_HERE/$b64/" inject.mjs
-
-# 4. Run with node
-node inject.mjs
+```
+For each image to insert:
+  1. Find the target cledit-section (e.g., the section after which the image should appear)
+  2. Use JavaScript Selection API to set cursor AFTER the target section
+  3. Click the image toolbar button via CDP mouse event
+  4. Handle file chooser via Playwright setInputFiles
+  5. Wait for CDN URL to appear at cursor
+  6. Verify: section count increased by 1, CDN URL rendered
 ```
 
-**Why the decodeURIComponent/escape dance is necessary:**
-- `atob()` decodes base64 into Latin-1 (ISO-8859-1), which corrupts multi-byte Chinese characters.
-- `escape()` percent-encodes non-ASCII bytes.
-- `decodeURIComponent()` interprets the percent-encoded string as UTF-8.
-- This is the only reliable way to transport full UTF-8 content through base64 in a browser context.
-
-### Step 3: Verify After Injection
-
-**Must check ALL of these:**
-
-| Check | Method | Pass/Fail |
-|-------|--------|-----------|
-| Line count | Read status bar `XX 行数` | Should match original file line count (within ±1) |
-| Word count | Read status bar `XXXX 字数` | Should be close to original |
-| Code highlighting | Check a code block visually | Highlighting should be active |
-| Headings | Check `##` lines render as headings | No raw `##` text visible |
-| Tables | Check table rendering | Columns aligned, no broken pipes |
-| Images | Check `![alt](url)` render | Placeholder replaced, image visible |
-| No residual artifacts | No `@@@IMG_`, no stray HTML, no `&nbsp;` | Clean content |
-
-**If line count is very low (e.g., "2 行数" for a 340-line article):**
-- The `innerText` bug is confirmed — you used `innerText` instead of `textContent`.
-- Fix: Clear the editor again and use `textContent`.
-
----
-
-## Cover Image Upload
-
-CSDN's cover upload uses a **Vue image crop component** (`vue-image-crop-upload`).
-
-### Flow
-
-1. Open the publish dialog (click "发布文章" button in the bottom toolbar).
-2. In the dialog, click the **"从本地上传"** button (selector: `.upload-img-box`).
-3. The file chooser opens — select the cover image (supported: `.png,.jpg,.jpeg,.gif`).
-4. A crop preview appears: `vicp-step2` with the image and adjustment controls.
-5. Click **"确认上传"** (selector: `.vicp-operate-btn`) to confirm.
-6. The image uploads to CSDN CDN and returns a URL like `https://i-blog.csdnimg.cn/direct/XXXX.png`.
-7. **Verify**: A cover image preview appears in the dialog (`.cover-img` or similar), replacing the "添加封面" text.
-
-### Playwright Implementation
+#### Step 3a: Setting cursor at correct markdown position
 
 ```javascript
-// Step 1: Click upload button in the dialog
-await page.evaluate(() => document.querySelector('.upload-img-box')?.click());
-// Step 2: File chooser opens — handle it
-await page.locator('input[type="file"]').setInputFiles(coverPath);
-// Or use Playwright's fileChooser event
+// Set cursor after a specific cledit-section
+const sections = document.querySelectorAll('.cledit-section');
+const targetSection = sections[TARGET_INDEX]; // 0-based index
+
+const range = document.createRange();
+range.setStartAfter(targetSection);
+range.collapse(true);
+
+const sel = window.getSelection();
+sel.removeAllRanges();
+sel.addRange(range);
+```
+
+#### Step 3b: Click image button via CDP mouse event
+
+The CSDN image button (`data-title="图片 – Command+Shift+G"`) often rejects Playwright `.click()` due to Vue event handling. **Use Chrome DevTools CDP click**:
+
+```javascript
+// Use DevTools MCP to click the button
+// First find the button element's bounding box
+const btn = document.querySelector('.article-btn-image');
+const rect = btn.getBoundingClientRect();
+// Click at center via CDP
+// (Use chrome-devtools_click tool with the uid from snapshot)
+```
+
+**The image dialog opens**. If using Playwright for the file chooser:
+
+```javascript
+// After clicking the image button via DevTools MCP,
+// switch to Playwright for file chooser handling:
 const [fileChooser] = await Promise.all([
-  page.waitForEvent('filechooser'),
-  page.evaluate(() => document.querySelector('.upload-img-box')?.click())
+  page.waitForEvent('filechooser', { timeout: 10000 }),
 ]);
-await fileChooser.setFiles(coverPath);
-// Step 3: Wait for crop preview
-await page.waitForSelector('.vicp-step2');
-// Step 4: Confirm
-await page.evaluate(() => document.querySelector('.vicp-operate-btn')?.click());
-// Step 5: Wait for upload to complete
+await fileChooser.setFiles(imagePath);
 await page.waitForTimeout(2000);
 ```
 
-### Cover Image Requirements
+**Verify**:
+- The image section dialog disappears
+- `![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/XXX.png#pic_center)` appears at cursor position
+- Image renders in the preview pane (right side)
 
-- **This is a proper cover image, NOT an inline article image.** They serve different purposes.
-- Cover image appears in article cards, search results, and social shares.
-- Inline images appear within the article body only.
-- The crop tool shows a preview of how the cover will look — adjust if needed.
+#### Step 3c: Repositioning existing images (if needed)
 
----
+If images were uploaded at wrong positions, remove and re-insert:
 
-## Publish Dialog Settings Checklist
+1. Remove each image's `cledit-section` from DOM (from highest index to lowest to avoid index drift):
+   ```javascript
+   const imgSections = document.querySelectorAll('.cledit-section');
+   // Find sections containing 'i-blog.csdnimg.cn/direct/'
+   // Remove from highest index to lowest
+   ```
+2. Extract the CDN URLs from the removed sections
+3. Insert at correct positions using `execCommand('insertText')` with `![alt](cdn-url)` syntax
 
-After clicking "发布文章", the modal opens with these settings. Verify each:
+#### Phase 3 Gate: Verification
 
-| Setting | How to Check | How to Fix |
-|---------|-------------|------------|
-| **封面图 (Cover)** | Look for uploaded image preview. If "添加封面" is still visible, no cover set. | Upload via "从本地上传" (see above) |
-| **文章标签 (Tags)** | Check for existing tags like "人工智能". | Click "添加文章标签" to add more |
-| **文章摘要 (Summary)** | Check char count `XX/256`. If 0, click "AI提取摘要". | Edit manually or regenerate |
-| **分类专栏 (Column)** | Look for selected column names (e.g., "看懂AI和智能体"). | Click the column to select/deselect |
-| **文章类型** | Should be "原创" (original) for new articles. | Radio button selection |
-| **创作声明** | Default is "无声明". | Check "部分内容由AI辅助生成" if applicable |
-| **可见范围** | Default "全部可见". | Change to "仅我可见" for drafts, "粉丝可见" for follower-only |
-| **参与活动/话题** | None selected by default. | Scroll to find and toggle relevant activities |
-| **原文链接** | Should be empty for original articles. | Only fill for republished content |
+- [ ] All images render in preview
+- [ ] Each image is at its correct position (check prev/next section content)
+- [ ] No "外链图片转存失败" warnings
+- [ ] No residual placeholder text
+- [ ] Total section count matches original markdown section count + image count
 
-**Important**: The publish dialog settings **persist across close/reopen** within the same editor session. If you close and reopen the dialog, previously set column and tags should still be there. But always verify — CSDN's SPA can lose state.
+### Phase 4: Publish Settings
 
----
+**Must follow this exact order: Cover → Tags → Summary → Column → Type → Visibility**.
 
-## Image Upload: Placeholder Replacement Method
+1. Click "发布文章" button in the bottom toolbar
+2. Set cover image: click upload area → File chooser → confirm upload
+3. Set tags: click tag input → select/search tags
+4. Set summary: click summary field → type or use "AI提取摘要"
+5. Set column: click column selector → choose relevant column
+6. Set article type: verify "原创" selected
+7. Set visibility: default "全部可见"
 
-The most reliable way to upload inline images to CSDN editor — reference implementation from open-source `md-publisher`.
+**Verify after each step** before moving to the next.
 
-### Why not just paste Markdown with image paths?
+### Phase 5: Save Draft Only
 
-CSDN editor cannot resolve local relative paths. Pasting raw Markdown results in "外链图片转存失败" placeholders. Uploading images first and inserting them later causes position drift and overlap.
+1. Verify all settings are correct
+2. **Do NOT click "发布文章" or "定时发布"**
+3. The editor auto-saves; confirm by checking status bar "已保存"
+4. Report to user: article ID, title, settings summary, image count
 
-### How it works
+## Image Upload: Two Approaches
 
-1. Replace all local `![alt](path)` images with `@@@IMG_0@@@`, `@@@IMG_1@@@`, ... placeholders.
-2. Import the placeholder Markdown into the editor.
-3. For each placeholder:
-   a. Select the placeholder text in the editor (use TreeWalker or text search).
-   b. Click the toolbar image button to open the upload dialog.
-   c. Select and upload the corresponding local image file.
-   d. The uploaded image replaces the selected placeholder in place.
-   e. **Verify**: placeholder is gone, image count increased by 1, no "上传中" or "转存失败" text.
+### Approach A: Dialog Upload (Preferred for fresh articles)
 
-### Verification checklist (all must pass)
+Upload images via the image upload dialog at the correct cursor position.
 
-- [ ] All `@@@IMG_N@@@` placeholders are replaced.
-- [ ] No residual `@@@IMG_` text in the body.
-- [ ] No "外链图片转存失败" warnings.
-- [ ] All images render correctly in preview mode.
+**Working mechanism** (verified):
+1. Position cursor at correct cledit-section
+2. Click image toolbar button using CDP mouse event (Chrome DevTools MCP `click`)
+3. The Vue image dialog opens
+4. File chooser appears — handle via Playwright `setInputFiles`
+5. CSDN uploads image to CDN and inserts `![alt](cdn-url)` at cursor
 
----
+**Why CDP click instead of Playwright click**: The CSDN image toolbar button's Vue event handler requires trusted click events. Playwright's synthetic clicks don't always trigger the handler. CDP mouse events (from Chrome DevTools MCP) produce native OS-level click events that Vue recognizes.
 
-## Article ID Stability
+### Approach B: URL Insertion (For repositioning)
 
-**Rule**: The article ID in the URL (`articleId=XXXXXX`) is **stable once a draft has been saved** at least once. But there are edge cases:
+If images are already on CDN (uploaded in a previous session), insert the markdown directly at cursor:
 
-| Scenario | articleId Behavior |
-|----------|-------------------|
-| Editor opened for a new article, no draft saved | ID changes if you close and reopen |
-| Editor opened for a new article, draft auto-saved | ID is stable — auto-save happens ~30s after first edit |
-| Editor opened from an existing draft/article | ID is the original article's ID |
-| Title changed | ID does NOT change — title only affects the URL slug/permalink |
-| Published and edited again | Same article ID |
+```javascript
+document.execCommand('insertText', false, 
+  '\n![描述文字](CDN_URL)\n');
+```
 
-**Practical advice**: Always note the articleId when you first open the editor. If you lose the editor URL, you can find it from the article management page at `https://mp.csdn.net/mp_blog/manage/article`.
-
----
+This approach requires only execCommand — no dialog, no file chooser.
 
 ## Safe Operation Boundaries
 
 ### ✅ Safe operations
 
-- Import Markdown via **「更多操作 → 导入」**
-- On `<pre contenteditable>` elements: `ed.textContent = content` (correct approach for Markdown editor)
-- `execCommand('selectAll') + execCommand('insertText')` for content replacement
-- `execCommand('insertText')` for inserting text at cursor
-- Click toolbar buttons to open dialogs (image, link, more insert)
-- Upload files via file chooser API (cover, inline images)
-- Set input values via `value + dispatchEvent` (title, summary, etc.)
-- Read `element.textContent` to verify content
-- Read status bar text for word count and line count verification
+- Use DevTools MCP `evaluate` to inspect DOM, set cursor, manipulate content
+- Use DevTools MCP `click` (CDP) for toolbar buttons
+- Use Playwright `setInputFiles` for file uploads
+- `document.execCommand('insertText')` for content injection
+- Read `element.textContent` for verification
+- Read status bar for word/line count
 
-### ❌ Forbidden operations on `<pre contenteditable>` editors
+### ❌ Forbidden
 
-- **`ed.innerText = content`** — converts `\n` to `<br>`, breaks line counting
-- `ed.innerHTML = htmlString` — replaces highlight.js spans, but acceptable if followed by `textContent` assignment
-- Using Playwright's `fill()` on the `<pre>` editor — clears everything to 3 lines
-- Direct DOM manipulation that bypasses the Vue model (deleting/inserting child nodes)
-- Setting content via `createTextNode + appendChild` — loses formatting
+- `ed.textContent = content` on the modern cledit-section editor — breaks the Vue model
+- Playwright `.fill()` on contenteditable — destroys formatting
+- Reading Cookie, Token, password, `.env`, browser profile
+- Auto-publishing, clicking "发布文章" without explicit user consent
+- Deleting body sections without verifying context first
+- Assuming editor state without snapshot verification
 
-### ❌ Universal forbidden operations
+## Troubleshooting
 
-- Reading Cookie, Token, password, `.env`, browser profile, or account files
-- Using comment, private-message, follow, acquisition, traffic, or growth automation
-- Bypassing login, CAPTCHA, audit, or platform risk checks
-- Auto-publishing, updating, deleting, withdrawing, commenting, following, or sending messages
-- Assuming the editor state without verification
-
----
-
-## Fallback Selector Strategy
-
-CSDN UI changes frequently. Prepare 2-3 selectors per action; try the next if the first fails.
-
-| Action | Primary | Fallback | Backup |
-|--------|---------|----------|--------|
-| Title input | `input[placeholder*="标题"]` | `#txtTitle` | `.article-title input` |
-| Image toolbar button | 2nd button left of 「更多插入」 | `button[aria-label*="图片"]` | `button[title*="图片"]` |
-| Tag input | `input[placeholder*="请输入文字搜索"]` | `input[placeholder*="标签"]` | `.tag-dialog input` |
-| Summary input | `textarea[aria-label*="摘要"]` | `textarea[placeholder*="摘要"]` | `#txtSammary` |
-| More ops button | `button:has-text("更多操作")` | `.more-ops-btn` | `button[aria-label*="更多"]` |
-| Import button | `button:has-text("导入")` | `.import-btn` | `li:has-text("导入")` |
-| Save draft button | `button:has-text("保存草稿")` | `.button-save` | `button[aria-label*="保存"]` |
-| Publish button (editor) | getByRole('button', { name: '发布文章' }) | `.btn-publish` | `button[aria-label*="发布"]` |
-| Cover upload button | `.upload-img-box` | `button:has-text("从本地上传")` | `.cover-upload-box` |
-| Confirm cover upload | `.vicp-operate-btn` | `div:has-text("确认上传")` | `.vicp-operate div` |
-
----
-
-## CSDN Checks
-
-- Confirm editor mode is **Markdown** (not Rich Text). Check the active tab in the navigation bar.
-- Confirm article type is correct: **原创** (original), **转载** (repost), or **翻译** (translation).
-- Confirm **column** matches the article topic and the column exists for your account.
-- Confirm **tags** are relevant and not spammy (3-5 tags recommended).
-- Confirm code blocks render correctly with syntax highlighting.
-- Confirm images render correctly and all CDN URLs are accessible.
-- Confirm the **summary** accurately represents the article without secrets, customer info, internal URLs, or exaggerated claims.
-- Confirm **line count** in the status bar matches the source — this is a strong signal that content was injected correctly.
-- Confirm the "35/100" (readability score) in the header is reasonable for a technical article.
-
----
-
-## Common Issues & Troubleshooting
-
-| Issue | Likely Cause | Fix |
-|-------|--------------|-----|
-| Line count shows "2 行数" for a 340-line article | Used `innerText` instead of `textContent` on `<pre>` editor | Clear with `innerHTML = ''`, re-inject with `textContent` |
-| Chinese characters corrupted | `atob()` treats content as Latin-1 | Use `decodeURIComponent(escape(atob(b64)))` for UTF-8 |
-| Content becomes 3 lines / 1 paragraph | Playwright `fill()` was used on the editor | Clear editor, use `textContent` or file import |
-| Editor shows "0 字数" after injection | Editor Vue model not synced with DOM | Try `ed.dispatchEvent(new Event('input'))` or focus/blur |
-| Publish dialog shows stale content | Dialog was closed without saving | Reopen dialog — settings (column, tags) may persist |
-| Cover upload fails silently | File format not supported | Use `.png` or `.jpg` format |
-| Cover upload shows "确认上传" but nothing happens | Network issue or file too large | Check browser console, try smaller file |
-| Syntax highlighting not working after injection | highlight.js didn't re-scan | Dispatch `input` event on the editor, or switch tabs and back |
-| "外链图片转存失败" in published article | Markdown with local paths was pasted directly | Use image placeholder replacement method |
-| Draft save succeeds but content is empty | Content was set on wrong element | Verify editor element selector: `.editor__inner`, not `.markdown-highlighting` wrapper |
-| Title becomes filename | Import `.md` file sets filename as title | Set title explicitly after import |
-| Toolbar buttons not found | CSDN UI changed | Take screenshot, find new selectors |
-
----
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| Image button click does nothing | Vue event handler rejects synthetic click | Use CDP mouse event (DevTools MCP click) instead of Playwright click |
+| Image uploads but appears at wrong position | Cursor was not at correct section | Remove image section from DOM; re-insert at correct position via execCommand |
+| Content shows all on one line | `innerHTML` was used and stripped newlines | Re-inject via `execCommand('insertText')` |
+| cledit-sections not found | Wrong mode (Rich Text instead of Markdown, or not in 比对模式) | Check editor mode; switch to Markdown + 比对 |
+| Article ID lost after reopen | No draft was saved | Save draft first via auto-save (wait 30s) or trigger save |
+| Sheet count shows "0 字数" | Vue model not synced | Dispatch `new Event('input')` on first section |
+| Image dialog opens but file upload fails | File chooser URL timeout | Ensure image file exists at absolute path; retry with Playwright setInputFiles |
 
 ## Output Format
 
 ```text
 建议：...
 事实：...
-已执行：...
-CSDN 渠道包：...
-分类/标签/文章类型：...
-图片：X 张，占位符替换法
-编辑器状态：Markdown | XXXX 字数 | XX 行数
-发布门禁：已停在发布前 / 未发布，原因...
+已执行：
+- 正文注入：XX 行，完成
+- 配图：X 张，已就位
+- 发布设置：[封面/标签/摘要/专栏/类型/可见范围] 已完成
+- 状态：草稿已保存（ID: XXXXXX）
+需用户确认：点击「发布文章」上线
 下一步：...
 ```
