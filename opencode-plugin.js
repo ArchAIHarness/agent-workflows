@@ -7,6 +7,8 @@ import { createZhihuTools } from './tools/zhihu/zhihu-tools.js';
 import { createXiaohongshuTools } from './tools/xiaohongshu/xiaohongshu-tools.js';
 import { createJuejinTools } from './tools/juejin/juejin-tools.js';
 import { createCsdnTools } from './tools/csdn/csdn-tools.js';
+import { createDoubaoTools } from './tools/doubao/doubao-tools.js';
+import { createDoubaoVideoTools } from './tools/doubao/doubao-video-tools.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = __dirname;
@@ -95,6 +97,8 @@ export const ArchAIAgentWorkflowsPlugin = async () => {
       ...createXiaohongshuTools(tool),
       ...createJuejinTools(tool),
       ...createCsdnTools(tool),
+      ...createDoubaoTools(tool),
+      ...createDoubaoVideoTools(tool),
     },
   };
 };

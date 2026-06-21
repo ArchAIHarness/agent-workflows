@@ -7,7 +7,7 @@
 [![OpenCode](https://img.shields.io/badge/OpenCode-Plugin%20%7C%20Agents%20%7C%20Skills-6E40C9?logo=opensourceinitiative&logoColor=white)](https://opencode.ai)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Agents](https://img.shields.io/badge/agents-3-success.svg)](#agents)
-[![Skills](https://img.shields.io/badge/skills-9-blue.svg)](#skills)
+[![Skills](https://img.shields.io/badge/skills-10-blue.svg)](#skills)
 
 </div>
 
@@ -71,6 +71,8 @@
 |---|---|---|---|
 | [`formal-resume-builder`](./skills/office/formal-resume-builder/) | office | 正式简历制作、排版、HTML/PDF 输出和质量校验 | 1.0.0 |
 | [`ddd-java-developer`](./skills/engineering/ddd-java-developer/) | engineering | DDD Java / Spring Boot 多模块开发约束流程 | 1.0.0 |
+| [`doubao-speech`](./skills/engineering/doubao-speech/) | engineering | 豆包语音模型 TTS 合成与 ASR 转写 | 1.0.0 |
+| [`doubao-video`](./skills/engineering/doubao-video/) | engineering | 豆包 Seedance/Seedream 视频生成：创建/查询/列表/取消任务 | 1.0.0 |
 | [`content-package-manager`](./skills/content/content-package-manager/) | content | 平台无关内容包、内容预审和多渠道发布准备 | 1.0.0 |
 | [`zhihu-publisher`](./skills/content/zhihu-publisher/) | content | 知乎渠道包、Draft.js 编辑器导入、逐张插图、封面/专栏设置和发布门禁 | 2.0.0 |
 | [`xiaohongshu-publisher`](./skills/content/xiaohongshu-publisher/) | content | 小红书图文笔记、卡片规划、话题适配和发布门禁 | 1.0.0 |
@@ -92,6 +94,7 @@
 | [`tools/xiaohongshu`](./tools/xiaohongshu/) | 小红书图文笔记渠道包、卡片规划、浏览器操作手册和发布前检查工具 |
 | [`tools/juejin`](./tools/juejin/) | 掘金技术文章渠道包、front matter、浏览器操作手册和发布前检查工具 |
 | [`tools/csdn`](./tools/csdn/) | CSDN 技术文章渠道包、分类标签、原创声明、浏览器操作手册和发布前检查工具 |
+| [`tools/doubao`](./tools/doubao/) | 豆包语音（TTS/ASR）与 Seedance/Seedream 视频生成任务工具 |
 
 ---
 
@@ -122,7 +125,8 @@ agent-workflows/
     ├── zhihu/
     ├── xiaohongshu/
     ├── juejin/
-    └── csdn/
+    ├── csdn/
+    └── doubao/
 ```
 
 ---
