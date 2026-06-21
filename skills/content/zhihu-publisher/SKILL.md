@@ -18,6 +18,17 @@ Prepare and manage safe Zhihu publishing workflows from Markdown or a platform-n
 - Browser guidance: `zhihu_browser_setup_guide`
 - Draft operation playbook: `zhihu_draft_playbook`
 
+## Browser Automation: Tool Selection
+
+Zhihu publish workflow needs browser automation. Two options are available; **Playwright MCP is preferred** for this task.
+
+| Tool | Best For | Why |
+|------|----------|-----|
+| **Playwright MCP** ✅ **首选** | Draft.js 编辑器交互、文件导入、图片上传、发布设置面板操作 | `getByRole` 精确匹配 Draft.js 的复杂 DOM；`browser_file_upload` 原生支持文件选择器触发导入/上传 |
+| Chrome DevTools MCP | 查网络请求、控制台错误、Playwright 失灵时兜底 | 网络面板定位上传失败原因；查看 `console.error`；Playwright 定位不到元素时备选 |
+
+**Keep both installed.** They coexist in OpenCode. Default to Playwright MCP for Zhihu tasks; fall back to Chrome DevTools when Playwright encounters issues or when you need to inspect network/console state.
+
 ## Core Principles
 
 1. Split body and images first. Build a channel package with the title, an image-free body Markdown, and an ordered image manifest containing anchor text and local file paths. Never type Markdown into the editor and expect it to render.

@@ -72,11 +72,10 @@
 | [`formal-resume-builder`](./skills/office/formal-resume-builder/) | office | 正式简历制作、排版、HTML/PDF 输出和质量校验 | 1.0.0 |
 | [`ddd-java-developer`](./skills/engineering/ddd-java-developer/) | engineering | DDD Java / Spring Boot 多模块开发约束流程 | 1.0.0 |
 | [`content-package-manager`](./skills/content/content-package-manager/) | content | 平台无关内容包、内容预审和多渠道发布准备 | 1.0.0 |
-| [`zhihu-publisher`](./skills/content/zhihu-publisher/) | content | 知乎渠道包、草稿导入/刷新验收、逐张插图和发布门禁 | 1.0.0 |
-| [`zhihu-article-manager`](./skills/content/zhihu-article-manager/) | content | 知乎旧入口兼容 Skill；新工作优先使用 `zhihu-publisher` | 1.6.0 |
+| [`zhihu-publisher`](./skills/content/zhihu-publisher/) | content | 知乎渠道包、Draft.js 编辑器导入、逐张插图、封面/专栏设置和发布门禁 | 2.0.0 |
 | [`xiaohongshu-publisher`](./skills/content/xiaohongshu-publisher/) | content | 小红书图文笔记、卡片规划、话题适配和发布门禁 | 1.0.0 |
 | [`juejin-publisher`](./skills/content/juejin-publisher/) | content | 掘金技术 Markdown、front matter、分类标签和发布门禁 | 1.0.0 |
-| [`csdn-publisher`](./skills/content/csdn-publisher/) | content | CSDN 技术 Markdown、分类标签、原创声明、预览检查和发布门禁 | 1.0.0 |
+| [`csdn-publisher`](./skills/content/csdn-publisher/) | content | CSDN 技术 Markdown、编辑器内容注入、封面上传、发布门禁和全流程踩坑梳理 | 2.0.0 |
 | [`code-quality`](./skills/quality/code-quality/) | quality | 基于项目自身设计文档的 AI 代码质量评估 | 9.0 |
 
 ---

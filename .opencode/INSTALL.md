@@ -45,9 +45,8 @@ After restart:
    - `formal-resume-builder`
    - `ddd-java-developer`
    - `content-package-manager`
-   - `zhihu-publisher`
-   - `zhihu-article-manager`
-   - `xiaohongshu-publisher`
+    - `zhihu-publisher`
+    - `xiaohongshu-publisher`
    - `juejin-publisher`
    - `csdn-publisher`
    - `code-quality`

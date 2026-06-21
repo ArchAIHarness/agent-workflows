@@ -154,8 +154,10 @@ test('CSDN_SAFE_OPS defines safe and forbidden operations', () => {
   assert.ok(CSDN_SAFE_OPS.forbiddenMethods.length > 0);
   // 安全操作包含导入 Markdown
   assert.ok(CSDN_SAFE_OPS.safeMethods.some((m) => m.includes('导入')));
-  // 禁止操作包含直接修改 innerHTML
-  assert.ok(CSDN_SAFE_OPS.forbiddenMethods.some((m) => m.includes('innerHTML')));
+  // 安全操作包含 textContent 注入（<pre> 编辑器上的正确操作）
+  assert.ok(CSDN_SAFE_OPS.safeMethods.some((m) => m.includes('textContent')));
+  // 禁止操作包含 innerText（在 <pre> 上错误操作）
+  assert.ok(CSDN_SAFE_OPS.forbiddenMethods.some((m) => m.includes('innerText')));
   // 有降级选择器
   assert.ok(CSDN_SAFE_OPS.fallbackSelectors.titleInput.length > 0);
   assert.ok(CSDN_SAFE_OPS.fallbackSelectors.imageToolbarButton.length > 0);

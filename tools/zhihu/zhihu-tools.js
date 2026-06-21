@@ -306,7 +306,16 @@ export function getZhihuBrowserAutomationGuide() {
   return [
     '知乎渠道发布需要浏览器自动化能力。当前工具不会读取账号、密码、Cookie 或浏览器 Profile。',
     '',
-    '插件会自动注册 Playwright MCP 和 Chrome DevTools MCP。若当前会话仍没有浏览器工具，通常只需要重启 OpenCode。需要手动核对时，可确认 opencode.json 中至少存在以下配置之一：',
+    '## 浏览器工具选型',
+    '',
+    '插件会自动注册 Playwright MCP 和 Chrome DevTools MCP。两者可共存，推荐：',
+    '',
+    '- **Playwright MCP（首选）**：Draft.js 编辑器交互、文件导入、图片上传、发布设置面板。',
+    '- **Chrome DevTools MCP（备选/调试）**：Playwright 失灵时兜底；查网络请求、控制台错误。',
+    '',
+    '不要卸载 Chrome DevTools——留作备用。',
+    '',
+    '若当前会话仍没有浏览器工具，通常只需要重启 OpenCode。需要手动核对时，可确认 opencode.json 中至少存在以下配置之一：',
     '```json',
     '{',
     '  "$schema": "https://opencode.ai/config.json",',
@@ -326,7 +335,7 @@ export function getZhihuBrowserAutomationGuide() {
     '```',
     '',
     '配置后请重启 OpenCode。重启后让 AI 打开 https://www.zhihu.com/creator，你在浏览器页面手动登录知乎。',
-    '登录完成后，AI 可辅助保存草稿；发布上线仍必须等待你明确回复“确认发布到知乎”。',
+    '登录完成后，AI 可辅助保存草稿；发布上线仍必须等待你明确回复"确认发布到知乎"。',
   ].join('\n');
 }
 
