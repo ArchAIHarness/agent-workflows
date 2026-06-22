@@ -1,6 +1,6 @@
 ---
 name: zhihu-publisher
-version: 2.0.0
+version: 2.1.0
 description: |
   Use when publishing or preparing Zhihu articles, 知乎发布, 知乎文章, 知乎专栏, 知乎草稿, Markdown-to-Zhihu adaptation, Zhihu browser draft workflows, or safe Zhihu publishing gates.
 ---
@@ -90,27 +90,33 @@ Zhihu publish workflow needs browser automation. Two options are available; **Pl
 
 ### Phase 5 — Insert images one by one
 
-For each image in `images.json` order:
+**Verified stable flow (no toolbar button click):** do NOT click the `图片` toolbar button — it pops an upload modal whose `.Modal-backdrop` then intercepts the next click and causes timeouts. Instead, place the caret and feed the file directly into the editor's resident hidden image input. The image is inserted at the caret immediately, with no `插入图片` confirmation step.
 
-1. Resolve the anchor: find the `[data-block="true"]` paragraph in `.public-DraftEditor-content` whose text contains `anchor_text`.
-2. Place the caret at the end of that paragraph's last text node, then press `End` and `Enter` to create a new empty paragraph below it.
-3. Click toolbar `图片` button (`button[aria-label="图片"]`).
-4. Click `本地图片上传` and trigger the hidden image file input (typically `input.css-1hyfx7x[type="file"]`, accept `image/*`). Upload the local image file.
-5. Wait for the preview, then click `插入图片` (`button.css-owamhi`).
-6. Verify `imgCount` incremented by exactly 1 and the new `<img>` sits between the anchor paragraph and the next structural element (`---`, next H2, etc.).
-7. If the upload modal hangs or the click goes nowhere, refresh the page and resume from the next un-inserted image — the autosaved draft survives.
+The resident image input is matched by accept, not class (classes like `css-1hyfx7x` change): `input[type=file][accept*="image/webp"]`.
+
+For each image in `images.json` order, run as one script:
+
+1. Wait for any leftover `.Modal-backdrop` to disappear before starting (poll until gone).
+2. Resolve the anchor with the Selection API (robust against scroll): find the `[data-block="true"]` paragraph in `.public-DraftEditor-content` whose `textContent` contains `anchor_text`; `scrollIntoView({block:'center'})`; build a `Range`, `selectNodeContents(anchor)`, `collapse(false)`, and apply it to the selection. Do **not** rely on `mouse.click(box)` coordinates — they go stale after scroll and cause every image to pile up at the first anchor.
+3. Press `Enter` to create a new empty paragraph below the anchor.
+4. `setInputFiles` the local image onto `input[type=file][accept*="image/webp"]`.
+5. Wait ~4.5 s for the upload + insert, then verify `imgCount` incremented by exactly 1 and `.Modal-backdrop` is gone.
+6. After all images, dump the document order (`figure`/`[data-block]` sequence) and confirm each `IMG` is preceded by the correct anchor text, and there are zero `上传失败` placeholder blocks.
+7. If a step times out (e.g. upload still running), do NOT blindly retry — press `Escape`, re-check `imgCount` and `.Modal-backdrop`, and resume only the missing image. A stuck modal + stale caret is the usual cause of duplicated / mis-anchored images; in that case clear the editor and re-import + re-insert all images cleanly.
+8. Watch the actual asset filenames on disk — do not assume names; a wrong path throws `ENOENT` and silently skips that image.
 
 ### Phase 6 — Cover image
 
 1. Open the `发布设置` panel.
-2. If the cover slot shows `添加封面` (no cover), the cover was lost — common after re-import. Re-upload via the hidden cover input (`input.UploadPicture-input`, accept `.jpeg, .jpg, .png`).
-3. Wait until the cover thumbnail renders and the `添加封面` placeholder disappears.
-4. The cover is a publishing asset only; do not insert it into the body.
+2. Note: re-import auto-sets the article's first body image as the cover. Always re-upload the dedicated `cover.png` so the cover is the proper 16:9 cover, not a body figure.
+3. Re-upload via the same resident cover input matched by accept: `input[type=file][accept=".jpeg, .jpg, .png"]`. `setInputFiles` the `cover.png`; no click on `更换` is needed.
+4. Verify the `img[alt="封面图"]` `src` changed and the `添加封面` placeholder is gone.
+5. The cover is a publishing asset only; do not insert it into the body.
 
 ### Phase 7 — Column / 专栏
 
-1. In `发布设置`, set the `专栏收录` radio to `发布到专栏` (`label[for="PublishPanel-columnLabel-1"]`).
-2. From the column dropdown, select the target column.
+1. In `发布设置`, click the `发布到专栏` radio (label text `发布到专栏`).
+2. The column dropdown often pre-selects the last-used column (e.g. `看懂AI与智能体`); verify it shows the target column, otherwise pick it from the dropdown.
 3. Verify the selected column text is visible in the panel.
 4. Per user preference, do not set 话题 / 创作声明 / 投稿至问题 unless explicitly requested.
 
@@ -134,8 +140,12 @@ For each image in `images.json` order:
 | Body starts with a duplicated H2 of the article title | The leading `# 主标题` was not stripped. Empty editor, strip line 1 of the source, re-import. |
 | Editor contents stack after import | Editor was not empty. Empty editor and re-import. |
 | Toolbar buttons unresponsive after long uploads | Refresh the page; the autosaved draft survives. Resume from the next pending step. |
-| Cover slot shows `添加封面` after re-import | Re-upload via `input.UploadPicture-input`. |
+| `.Modal-backdrop` intercepts clicks / click times out | A previous toolbar-image-button upload left a modal. Press `Escape`, poll until `.Modal-backdrop` is gone, then prefer the resident-input flow (no toolbar click). |
+| Cover slot shows `添加封面` after re-import | Re-upload via `input[type=file][accept=".jpeg, .jpg, .png"]`. |
+| Cover shows a body figure (not the cover) after import | Import auto-set first body image as cover. Re-upload `cover.png` via the same accept input. |
+| Images all piled at the first anchor / `上传失败` placeholder appears | Mouse-coordinate clicks went stale after scroll, or toolbar modal hung. Clear the editor, re-import, and re-insert all images via Selection-API anchor + resident-input flow. |
 | Image inserted at the wrong position | Undo (`Meta+Z`), reposition the caret on the correct anchor paragraph, retry. |
+| `ENOENT` on image upload | Asset filename guessed wrong. List the real files in `assets/<article>/` and use exact names. |
 
 ## Zhihu Stability Rules
 
@@ -143,8 +153,10 @@ For each image in `images.json` order:
 - Import the image-free Markdown first; never trust paste / `fill()` for body content.
 - After import, verify word count is non-zero, the article's first sentence appears once, the first section title appears once, and body image count is zero.
 - Wait for draft save state, optionally refresh, and verify again before inserting images.
-- Insert images one by one; each upload must be followed by clicking `插入图片` and an `imgCount` increment check.
-- After all images, re-verify cover and column in `发布设置` because re-imports can drop them.
+- Insert images one by one via the resident input flow: place the caret with the Selection API, press Enter, then `setInputFiles` onto `input[accept*="image/webp"]`; verify `imgCount` increments by 1 each time. Avoid clicking the `图片` toolbar button (it pops a modal that intercepts subsequent clicks).
+- Before each image step, poll until any `.Modal-backdrop` is gone.
+- After all images, dump the figure/block document order and confirm each image sits after its correct anchor and there are zero `上传失败` placeholders.
+- After all images, re-verify cover and column in `发布设置` because re-imports drop the cover (and may auto-set a body image as cover).
 - Always end with computer-preview verification and a screenshot; do not rely on log output alone.
 - Do not automate public article or public column page visits for verification.
 

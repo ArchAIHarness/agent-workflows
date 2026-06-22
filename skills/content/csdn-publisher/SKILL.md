@@ -1,6 +1,6 @@
 ---
 name: csdn-publisher
-version: 3.0.0
+version: 3.1.0
 description: |
   Use when preparing or publishing CSDN/CSDN博客 articles, CSDN草稿, technical Markdown, categories, tags, originality declarations, or safe CSDN publishing workflows.
 ---
@@ -74,6 +74,47 @@ document.execCommand('insertText', false, content);
 ```
 
 **Verify**: Check status bar shows correct line count (`XX 行数`) and word count (`XXX 字数`).
+
+#### Playwright-only fallback: synthetic paste event (verified 2026-06)
+
+When only Playwright MCP is available (no DevTools CDP), `execCommand('insertText')` on the
+cledit editor can **drop newlines**. Instead dispatch a synthetic `paste` ClipboardEvent —
+it preserves `\n` and triggers CSDN's Vue markdown parser:
+
+```javascript
+// b64 = base64 of article.final.md (with real CDN image URLs already substituted)
+const md = decodeURIComponent(escape(atob(b64)));
+const editor = document.querySelector('.cledit-section').closest('[contenteditable]');
+editor.focus();
+// 1) CLEAR FIRST — paste does NOT replace selection/existing content, it APPENDS.
+//    Skipping this duplicates the whole body. Select-all + delete to leave 1 empty section.
+const sel = window.getSelection();
+const r = document.createRange();
+r.selectNodeContents(editor); sel.removeAllRanges(); sel.addRange(r);
+document.execCommand('delete');
+// 2) Synthetic paste
+const dt = new DataTransfer();
+dt.setData('text/plain', md);
+editor.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+```
+
+Gotchas:
+- **paste appends, never replaces** — always clear the editor first, or you get
+  placeholder+CDN duplicated content.
+- The page sandbox has **no `Buffer`/`require`** — inline the base64 string into the script;
+  decode with `decodeURIComponent(escape(atob(b64)))`.
+- `playwright_browser_run_code_unsafe` script files must live under the project
+  `.playwright-mcp/` dir (`/tmp` is rejected); `require` is also unavailable there, so the
+  base64 must be inlined into the script string.
+- Verify after paste: section count ≈ original, image count = N CDN images, **0 placeholders**,
+  no stray "在这里插入图片描述" text.
+
+#### Image strategy when using synthetic paste
+
+Upload the N images first (cursor at end is fine) to collect their CDN URLs, substitute them
+into the markdown placeholders to produce `article.final.md`, THEN do the single clean paste.
+This avoids per-position cursor dance. The cover image is uploaded separately in Phase 4 and
+yields its own CDN URL via the cropper's "确认上传" button.
 
 ### Phase 3: Place Inline Images (Critical Gate)
 
@@ -170,6 +211,39 @@ If images were uploaded at wrong positions, remove and re-insert:
 
 **Verify after each step** before moving to the next.
 
+#### Tag restriction by blog level (verified 2026-06)
+
+CSDN **blocks custom-tag creation for blogs below level 3**. The tag popover shows
+"博客等级不满足三级，无法创建自定义标签". Typing a brand-new term + Enter does nothing.
+
+Workaround — use **existing platform tags** only:
+- Type a keyword in the tag search box; CSDN returns existing tags in
+  `ul.el-autocomplete-suggestion__list > li`. Click an `<li>` to add it.
+- Recommended tags (shown under "添加标签" as `.el-tag` without a close icon) can be
+  clicked to add. Added tags get an `.el-tag__close` icon; the counter reads
+  "还可添加N个标签" (max 7, decrements on each add).
+- Pick existing tags closest to the article topic (e.g. for a RAG article:
+  人工智能 / AI编程 / 全文检索 / 语言模型 / 知识图谱).
+- Record both the intended tags and the actually-applied tags in metadata.json.
+
+#### Tag popover mask gotcha
+
+After interacting with the tag autocomplete, a `.mark-mask-box-div` overlay can stay up
+and intercept clicks on later fields (cover/summary). Don't click random close buttons —
+that may close the whole publish drawer. Press `Escape` to dismiss the autocomplete popover,
+then verify the drawer is still open (look for the "保存为草稿" button); if the drawer
+closed, reopen via "发布文章" — **tags/cover/summary already entered are preserved**.
+
+#### Save-draft button
+
+The publish drawer's bottom bar has 取消 / 保存为草稿 (`button.btn-b-normal`) / 定时发布 /
+发布文章 (`button.btn-b-red`). Click **保存为草稿** — never the red 发布文章.
+Confirm via toast "文章已保存 HH:MM:SS" AND by inspecting the `saveArticle` request body
+(`"status":2`, `"pubStatus":"draft"`). The drawer may NOT auto-close after save — that's fine;
+the draft is already persisted. Use `playwright_browser_network_request` on the latest
+`bizapi.csdn.net/blog-console-api/v3/mdeditor/saveArticle` POST to verify status, tags,
+categories, cover_images.
+
 ### Phase 5: Save Draft Only
 
 1. Verify all settings are correct
@@ -234,6 +308,11 @@ This approach requires only execCommand — no dialog, no file chooser.
 | Article ID lost after reopen | No draft was saved | Save draft first via auto-save (wait 30s) or trigger save |
 | Sheet count shows "0 字数" | Vue model not synced | Dispatch `new Event('input')` on first section |
 | Image dialog opens but file upload fails | File chooser URL timeout | Ensure image file exists at absolute path; retry with Playwright setInputFiles |
+| Body content duplicated after paste | Synthetic paste appends, didn't clear first | Select-all + `execCommand('delete')` to leave 1 empty section, then paste once |
+| Newlines lost / all on one line | Used `execCommand('insertText')` | Use synthetic `paste` ClipboardEvent with `text/plain` instead |
+| Custom tag won't add (Enter does nothing) | Blog level < 3 blocks custom tags | Use existing platform tags via search dropdown `ul.el-autocomplete-suggestion__list > li` |
+| Cover/summary click intercepted | `.mark-mask-box-div` overlay from tag popover | Press Escape; verify drawer still open (else reopen 发布文章, entries persist) |
+| Publish drawer won't close after save-draft | Normal CSDN behavior | Ignore — draft already saved; verify via saveArticle request body `status:2` |
 
 ## Output Format
 
