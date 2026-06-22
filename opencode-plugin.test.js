@@ -31,33 +31,6 @@ test('plugin config preserves existing Playwright MCP when user configured it', 
   assert.equal(config.mcp.playwright, existing);
 });
 
-test('plugin config registers Chrome DevTools MCP automatically when missing', async () => {
-  const plugin = await ArchAIAgentWorkflowsPlugin();
-  const config = {};
-
-  await plugin.config(config);
-
-  assert.deepEqual(config.mcp['chrome-devtools'], {
-    type: 'local',
-    command: ['npx', '-y', 'chrome-devtools-mcp'],
-    enabled: true,
-  });
-});
-
-test('plugin config preserves existing Chrome DevTools MCP when user configured it', async () => {
-  const plugin = await ArchAIAgentWorkflowsPlugin();
-  const existing = {
-    type: 'local',
-    command: ['custom-chrome-devtools'],
-    enabled: false,
-  };
-  const config = { mcp: { 'chrome-devtools': existing } };
-
-  await plugin.config(config);
-
-  assert.equal(config.mcp['chrome-devtools'], existing);
-});
-
 test('plugin config auto-registers bundled superpowers skills path when available', async () => {
   const plugin = await ArchAIAgentWorkflowsPlugin();
   const config = { skills: { paths: [] } };

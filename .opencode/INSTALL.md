@@ -29,7 +29,7 @@ Restart OpenCode after changing config.
 - `agents/*.md` becomes OpenCode agents.
 - `skills/**/SKILL.md` becomes OpenCode skills.
 - Bundled `superpowers` skills are auto-registered from `node_modules/superpowers/skills` when available; users do not need to install superpowers separately.
-- The plugin auto-registers `mcp.playwright` and `mcp.chrome-devtools` for browser automation when missing; existing user-defined MCP entries are preserved.
+- The plugin auto-registers `mcp.playwright` for browser automation when missing; existing user-defined MCP entries are preserved.
 - `tools/zhihu` registers `zhihu_prepare_publish`, `zhihu_prepare_article`, and `zhihu_browser_setup_guide` as OpenCode custom tools for one-step Zhihu publish preparation, channel adaptation, browser automation guidance, and pre-publish checks.
 - `tools/xiaohongshu`, `tools/juejin`, and `tools/csdn` register channel package, browser guidance, and draft playbook tools for 小红书、掘金、CSDN distribution workflows. All publish actions require explicit human confirmation.
 

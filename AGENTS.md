@@ -115,7 +115,7 @@ opencode-plugin.js
 
 1. 将本仓库 `skills/` 和依赖内置的 `node_modules/superpowers/skills` 加入 `config.skills.paths`，路径存在时才注册。
 2. 读取 `agents/*.md` 并注入 `config.agent`。
-3. 在缺少 `mcp.playwright` 或 `mcp.chrome-devtools` 时自动注册对应浏览器 MCP，支撑浏览器自动化；不得覆盖用户已有 MCP 配置。
+3. 在缺少 `mcp.playwright` 时自动注册浏览器 MCP，支撑浏览器自动化；不得覆盖用户已有 MCP 配置。
 
 要求：
 

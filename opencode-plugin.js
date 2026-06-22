@@ -55,11 +55,6 @@ function registerBrowserMcp(config) {
     command: ['npx', '-y', '@playwright/mcp'],
     enabled: true,
   };
-  config.mcp['chrome-devtools'] = config.mcp['chrome-devtools'] || {
-    type: 'local',
-    command: ['npx', '-y', 'chrome-devtools-mcp'],
-    enabled: true,
-  };
 }
 
 function registerAgents(config) {
