@@ -1,6 +1,6 @@
 ---
 name: csdn-publisher
-version: 3.1.0
+version: 3.2.0
 description: |
   Use when preparing or publishing CSDN/CSDN博客 articles, CSDN草稿, technical Markdown, categories, tags, originality declarations, or safe CSDN publishing workflows.
 ---
@@ -22,6 +22,113 @@ Key editor facts (verified against production 2026-06):
 - `execCommand('insertText')` inserts text at cursor with correct `\n` handling
 - Image CDN URLs are persisted once uploaded
 - Auto-save triggers ~30s after any change
+
+## Two Editor Variants — Detect First
+
+CSDN ships **two distinct markdown editors**. Detect which one is live before injecting:
+
+| Variant | Container | Detect | Injection method |
+|---------|-----------|--------|------------------|
+| **A · cledit (compare mode)** | `.cledit-section` | `document.querySelector('.cledit-section')` exists | synthetic `paste` ClipboardEvent (Phase 2 below) |
+| **B · editor\_\_inner (modern md)** | `.editor__inner` | `document.querySelector('.editor__inner')` exists | `ed.textContent = content` + dispatch `input` ✅ verified on a 13-article batch |
+
+Variant B is what `https://editor.csdn.net/md` serves today. The rest of this skill's
+Phase 2/3 describes Variant A; **for Variant B follow the "Editor Variant B" section** —
+it is the more reliable path in 2026-06 (whole batch of articles, 3–5 images each, 0 failures).
+
+## Editor Variant B: `.editor__inner` (modern md editor) — Preferred
+
+### B0 · Open a fresh article
+
+Navigate directly to `https://editor.csdn.net/md`. A blank `articleId`-less editor opens;
+the `articleId` is assigned on first save. The editor body is `div.editor__inner`.
+
+### B1 · Inject body (placeholder markdown + base64)
+
+1. In the source markdown, replace each `![alt](local/path.png)` with a unique text
+   placeholder `@@@IMG_0@@@`, `@@@IMG_1@@@`, … (keep an `images.map.json` of index→alt→file).
+   This yields `article.placeholder.md`.
+2. base64-encode the placeholder markdown and **inline the literal** into a self-contained
+   JS file under the project `.playwright-mcp/` dir (the sandbox has no `require`/dynamic
+   `import` and rejects `/tmp`).
+3. Inject and verify:
+
+```javascript
+const content = decodeURIComponent(escape(atob(b64)));   // utf-8 safe decode
+const ed = document.querySelector('.editor__inner');
+ed.textContent = content;                                 // keeps \n; sets the md source
+ed.dispatchEvent(new Event('input', {bubbles:true}));     // triggers CSDN's parser
+// verify: textContent line count == source, placeholder count == N images
+```
+
+`textContent =` is the correct, verified approach **for Variant B only** — do NOT use it on
+Variant A (cledit). Confirm via status bar `XX 行数 / XXX 字数`.
+
+### B2 · Fill title
+
+```javascript
+const ti = document.querySelector('input.article-bar__title, input[placeholder*="标题"], .article-bar input');
+const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set;
+setter.call(ti, TITLE); ti.dispatchEvent(new Event('input',{bubbles:true})); ti.dispatchEvent(new Event('change',{bubbles:true}));
+```
+
+### B3 · Place images via placeholder replacement (verified, robust)
+
+For each image, **in order**:
+
+1. Select the `@@@IMG_N@@@` text via TreeWalker + Range/Selection API.
+2. Click the toolbar image button `[data-title^="图片"]` — this **rebuilds** a fresh
+   `input[accept*=image]` (the previous one is consumed after each upload).
+3. **Re-select** the same `@@@IMG_N@@@` placeholder (the click can collapse the selection).
+4. `setInputFiles` on `input[accept*=image]`.last() with the image's absolute path.
+5. Wait ~4–5s; verify the placeholder is gone.
+
+```javascript
+// Steps 1+3: select placeholder N
+const ed = document.querySelector('.editor__inner');
+const w = document.createTreeWalker(ed, NodeFilter.SHOW_TEXT);
+let node, found=null, idx=-1;
+while(node=w.nextNode()){ const i=node.textContent.indexOf('@@@IMG_N@@@'); if(i>=0){found=node;idx=i;break;} }
+if(found){ const r=document.createRange(); r.setStart(found,idx); r.setEnd(found,idx+'@@@IMG_N@@@'.length);
+  const s=window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+```
+
+Gotchas:
+- **One input per upload**: count `input[accept*=image]` before/after the toolbar click to
+  confirm it rebuilt (0 → 1). If `setInputFiles` times out, the input wasn't rebuilt — click
+  the image button again, then re-select, then upload.
+- **CDN URL counting is unreliable from `textContent`**: only the cursor line stays as raw
+  `![](url)`; other images render to `<img>` (their URL lives in `src`, not `textContent`).
+  Verify success by **placeholder count → 0**, then collect final CDN URLs after save by
+  unioning `[...ed.querySelectorAll('img')].map(i=>i.src)` across the rendered preview.
+
+### B4 · Publish settings (open drawer, don't publish)
+
+Click `button.btn-publish` (bottom red 发布文章) to open the publish drawer. Then:
+
+- **Summary**: `textarea[placeholder*="展现列表"]` via native setter + `input`/`change`. Keep ≤256.
+- **Tags** (blog level < 3 → existing tags only): remove unwanted default chips via
+  `.el-tag.mark_selection_box_el_tag .el-tag__close`. Click `.tag__btn-tag:has-text("添加文章标签")`,
+  type a keyword. **Recommended tags are dynamic**: a keyword search may not surface a wanted
+  tag — clearing the search box / picking the "推荐" category brings the default recommend list
+  back, where tags like `AI编程` reappear. Click the leaf element whose text exactly equals the
+  tag and that is **not** inside `.editor__inner`. Close the tag popover with `Escape`
+  (this also closes the whole drawer, but **entered tags/summary/cover persist** — reopen via
+  `button.btn-publish` and they're still there).
+- **Column**: click `#tagList .tag__btn-tag` (新建分类专栏) to expand the popover, click the
+  `label.tag__option-label` whose text equals the target column. Close the popover via the
+  `button.modal__close-button` inside the ancestor containing "最多选择3个分类专栏".
+- **Cover**: CSDN auto-grabs the first body image as a thumbnail. To use a dedicated cover,
+  click "从本地上传" → file chooser → `setInputFiles` the cover file → the cropper opens →
+  click `.vicp-operate-btn` ("确认上传").
+- **Type** 原创 and **Visibility** 全部可见 are usually pre-selected; verify.
+
+### B5 · Save draft only
+
+Click `button:text-is("保存为草稿")` — never 发布文章 / 定时发布. Confirm the status bar
+toast `文章已保存 HH:MM:SS`. The drawer may stay open — fine, the draft is persisted.
+Record `articleId` (from URL `?articleId=`), final CDN image URLs, and applied tags into
+`metadata.json`.
 
 ## Browser Automation: Tool Selection
 
@@ -290,7 +397,8 @@ This approach requires only execCommand — no dialog, no file chooser.
 
 ### ❌ Forbidden
 
-- `ed.textContent = content` on the modern cledit-section editor — breaks the Vue model
+- `ed.textContent = content` on the **Variant A** cledit-section editor — breaks the Vue model
+  (note: on **Variant B** `.editor__inner`, `textContent =` IS the correct method — detect first)
 - Playwright `.fill()` on contenteditable — destroys formatting
 - Reading Cookie, Token, password, `.env`, browser profile
 - Auto-publishing, clicking "发布文章" without explicit user consent
@@ -313,6 +421,10 @@ This approach requires only execCommand — no dialog, no file chooser.
 | Custom tag won't add (Enter does nothing) | Blog level < 3 blocks custom tags | Use existing platform tags via search dropdown `ul.el-autocomplete-suggestion__list > li` |
 | Cover/summary click intercepted | `.mark-mask-box-div` overlay from tag popover | Press Escape; verify drawer still open (else reopen 发布文章, entries persist) |
 | Publish drawer won't close after save-draft | Normal CSDN behavior | Ignore — draft already saved; verify via saveArticle request body `status:2` |
+| `.editor__inner` present but `.cledit-section` absent | This is Variant B (modern md editor) | Use the "Editor Variant B" section: `textContent=`+input, placeholder-replacement image upload |
+| `setInputFiles` times out (Variant B image) | Image `input` not rebuilt by toolbar click | Re-click `[data-title^="图片"]`, confirm `input[accept*=image]` count 0→1, re-select placeholder, retry |
+| Wanted recommend tag missing from search | Recommend list is dynamic per keyword | Clear the search box / pick the 推荐 category; the default recommend list (incl. AI编程) returns |
+| Escape closed the whole publish drawer | Tag popover Escape bubbles to drawer | Expected — entered tags/summary/cover persist; reopen via `button.btn-publish` |
 
 ## Output Format
 
